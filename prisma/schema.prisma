@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String   @unique
+  phone     String
+  address   String
+  city      String
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  customer      Customer    @relation(fields: [customerId], references: [id])
+  customerId    String
+  orderDate     DateTime    @default(now())
+  status        OrderStatus @default(PENDING)
+  paymentMethod String
+  subtotal      Float
+  deposit       Float
+  items         OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  order        Order    @relation(fields: [orderId], references: [id])
+  orderId      String
+  gender       String
+  occasion     String
+  design       Json     // Store design selection as JSON
+  measurements Json     // Store measurements as JSON
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WarehouseWorker {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String   @unique
+  phone     String
+  role      String
+  password  String   // Hashed password
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  READY_FOR_PICKUP
+  COMPLETED
+  CANCELLED
+}

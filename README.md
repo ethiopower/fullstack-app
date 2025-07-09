@@ -1,91 +1,77 @@
-# Online Store Application
+# Fafresh Cultural Fashion
 
-A full-stack e-commerce application with order management, tracking, and back office functionality.
+A Next.js e-commerce application for Ethiopian cultural fashion.
 
-## Project Structure
+## Database Management
 
-- `backend/` - Node.js/Express backend API
-- `frontend/` - Next.js frontend application
-- `shared/` - Shared TypeScript types and utilities
+This project uses SQLite as the primary database (via Prisma ORM) with Google Sheets as a backup storage.
 
-## Features
+### Database Setup
 
-- User authentication and authorization
-- Product catalog and management
-- Shopping cart functionality
-- Order processing and tracking
-- Back office dashboard
-- Real-time order updates
+1. The SQLite database file is located at `prisma/dev.db`
+2. To set up the database for the first time:
+   ```bash
+   npx prisma migrate dev --name init
+   ```
 
-## Getting Started
+### Running Migrations
 
-### Prerequisites
+When you make changes to the Prisma schema (`prisma/schema.prisma`):
 
-- Node.js 18+ and npm
-- MongoDB
-- Git
+1. Create and apply a migration:
+   ```bash
+   npx prisma migrate dev --name your_migration_name
+   ```
 
-### Installation
+2. Generate Prisma Client:
+   ```bash
+   npx prisma generate
+   ```
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd fullstack-app
+### Database Tools
+
+- View your data with Prisma Studio:
+  ```bash
+  npx prisma studio
+  ```
+
+### Backup System
+
+- All orders are automatically backed up to Google Sheets
+- The backup happens asynchronously after successful database writes
+- Check the Google Sheet for a complete order history
+
+## Environment Variables
+
+Create a `.env` file with:
+
+```env
+# Database
+DATABASE_URL="file:./dev.db"
+
+# Google Sheets (for backup)
+GOOGLE_SHEET_ID="your-sheet-id"
+GOOGLE_CLIENT_EMAIL="your-client-email"
+GOOGLE_PRIVATE_KEY="your-private-key"
+
+# NextAuth.js
+NEXTAUTH_SECRET="your-nextauth-secret"
+NEXTAUTH_URL="http://localhost:3000"
 ```
-
-2. Install dependencies:
-```bash
-# Install backend dependencies
-cd backend
-npm install
-
-# Install frontend dependencies
-cd ../frontend
-npm install
-
-# Install shared dependencies
-cd ../shared
-npm install
-```
-
-3. Set up environment variables:
-```bash
-# Backend (.env)
-MONGODB_URI=your_mongodb_uri
-JWT_SECRET=your_jwt_secret
-PORT=3001
-
-# Frontend (.env.local)
-NEXT_PUBLIC_API_URL=http://localhost:3001
-```
-
-4. Build shared package:
-```bash
-cd shared
-npm run build
-```
-
-5. Start the development servers:
-```bash
-# Terminal 1 - Backend
-cd backend
-npm run dev
-
-# Terminal 2 - Frontend
-cd frontend
-npm run dev
-```
-
-The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:3001
 
 ## Development
 
-- Backend API documentation is available at `/api-docs`
-- Use `npm run build` to create production builds
-- Use `npm run test` to run tests
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-## License
+2. Run migrations:
+   ```bash
+   npx prisma migrate dev
+   ```
 
-MIT 
+3. Start the development server:
+   ```bash
+   npm run dev
+   ``` 
