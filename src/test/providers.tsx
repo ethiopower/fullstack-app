@@ -1,7 +1,7 @@
 'use client'
 
 import { Session } from 'next-auth'
-import { SessionProvider as NextAuthSessionProvider } from 'next-auth/react'
+import { SessionProvider } from 'next-auth/react'
 import { ReactNode } from 'react'
 
 interface TestProvidersProps {
@@ -11,8 +11,8 @@ interface TestProvidersProps {
 
 export function TestProviders({ children, session = null }: TestProvidersProps) {
   return (
-    <NextAuthSessionProvider session={session}>
+    <SessionProvider session={session} refetchInterval={0}>
       {children}
-    </NextAuthSessionProvider>
+    </SessionProvider>
   )
 } 

@@ -1,7 +1,24 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import DashboardPage from '../page'
 import { TestProviders } from '@/test/providers'
+import { Session } from 'next-auth'
+
+// Mock next-auth
+jest.mock('next-auth/react', () => {
+  const originalModule = jest.requireActual('next-auth/react')
+  return {
+    __esModule: true,
+    ...originalModule,
+    useSession: jest.fn(() => ({
+      data: {
+        user: { id: '1', email: 'admin@example.com', name: 'Admin User' },
+        expires: new Date(Date.now() + 2 * 86400).toISOString()
+      } as Session,
+      status: 'authenticated'
+    }))
+  }
+})
 
 // Mock the fetch function
 const mockFetch = jest.fn()
@@ -13,92 +30,112 @@ const mockOrders = [
     id: '1',
     customerName: 'John Doe',
     status: 'pending',
+    createdAt: '2024-03-20T10:00:00Z',
     totalAmount: 299.99,
   },
   {
     id: '2',
     customerName: 'Jane Smith',
     status: 'processing',
+    createdAt: '2024-03-19T15:30:00Z',
     totalAmount: 199.99,
   },
 ]
 
-// Mock session
-const mockSession = {
-  expires: new Date(Date.now() + 2 * 86400).toISOString(),
-  user: { id: '1', email: 'admin@example.com', name: 'Admin User' }
-}
-
 describe('DashboardPage', () => {
   beforeEach(() => {
     mockFetch.mockClear()
-    mockFetch.mockImplementation(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ orders: mockOrders }),
-      })
+  })
+
+  it('renders loading state initially', async () => {
+    // Mock a slow response
+    mockFetch.mockImplementationOnce(() =>
+      new Promise(resolve =>
+        setTimeout(() =>
+          resolve({
+            ok: true,
+            json: () => Promise.resolve({ orders: mockOrders }),
+          }),
+          100
+        )
+      )
     )
+
+    let rendered
+    await act(async () => {
+      rendered = render(
+        <TestProviders>
+          <DashboardPage />
+        </TestProviders>
+      )
+    })
+
+    expect(screen.getByText('Loading orders...')).toBeInTheDocument()
+
+    // Wait for the loading state to be replaced
+    await waitFor(() => {
+      expect(screen.queryByText('Loading orders...')).not.toBeInTheDocument()
+    })
   })
 
   it('renders the dashboard with orders', async () => {
-    render(
-      <TestProviders session={mockSession}>
-        <DashboardPage />
-      </TestProviders>
-    )
-
-    // Check loading state
-    expect(screen.getByText(/loading/i)).toBeInTheDocument()
-
-    // Wait for orders to load
-    await waitFor(() => {
-      expect(screen.getByText('John Doe')).toBeInTheDocument()
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument()
-    })
-
-    // Check order details
-    expect(screen.getByText('$299.99')).toBeInTheDocument()
-    expect(screen.getByText('$199.99')).toBeInTheDocument()
-    expect(screen.getAllByText(/pending|processing/i)).toHaveLength(2)
-  })
-
-  it('handles order status updates', async () => {
-    const user = userEvent.setup()
     mockFetch.mockImplementationOnce(() =>
       Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ orders: mockOrders }),
       })
-    ).mockImplementationOnce(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      })
     )
 
-    render(
-      <TestProviders session={mockSession}>
-        <DashboardPage />
-      </TestProviders>
-    )
+    await act(async () => {
+      render(
+        <TestProviders>
+          <DashboardPage />
+        </TestProviders>
+      )
+    })
 
-    // Wait for orders to load
+    await waitFor(() => {
+      expect(screen.getByText('John Doe')).toBeInTheDocument()
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument()
+      expect(screen.getByText(/total: \$299\.99/i)).toBeInTheDocument()
+      expect(screen.getByText(/total: \$199\.99/i)).toBeInTheDocument()
+    })
+  })
+
+  it('handles order status updates', async () => {
+    const user = userEvent.setup()
+
+    mockFetch
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ orders: mockOrders }),
+        })
+      )
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true }),
+        })
+      )
+
+    await act(async () => {
+      render(
+        <TestProviders>
+          <DashboardPage />
+        </TestProviders>
+      )
+    })
+
     await waitFor(() => {
       expect(screen.getByText('John Doe')).toBeInTheDocument()
     })
 
-    // Click status update button
-    const statusButton = screen.getAllByRole('button', { name: /update status/i })[0]
-    await user.click(statusButton)
+    const updateButton = screen.getByRole('button', { name: /update status/i })
+    await act(async () => {
+      await user.click(updateButton)
+    })
 
-    // Select new status
-    const statusSelect = screen.getByRole('combobox')
-    await user.selectOptions(statusSelect, 'processing')
-
-    // Click confirm
-    await user.click(screen.getByRole('button', { name: /confirm/i }))
-
-    // Verify API call
     expect(mockFetch).toHaveBeenCalledWith('/api/orders/1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -115,11 +152,13 @@ describe('DashboardPage', () => {
       })
     )
 
-    render(
-      <TestProviders session={mockSession}>
-        <DashboardPage />
-      </TestProviders>
-    )
+    await act(async () => {
+      render(
+        <TestProviders>
+          <DashboardPage />
+        </TestProviders>
+      )
+    })
 
     await waitFor(() => {
       expect(screen.getByText(/error loading orders/i)).toBeInTheDocument()
@@ -128,23 +167,32 @@ describe('DashboardPage', () => {
 
   it('filters orders by status', async () => {
     const user = userEvent.setup()
-    render(
-      <TestProviders session={mockSession}>
-        <DashboardPage />
-      </TestProviders>
+
+    mockFetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ orders: mockOrders }),
+      })
     )
 
-    // Wait for orders to load
+    await act(async () => {
+      render(
+        <TestProviders>
+          <DashboardPage />
+        </TestProviders>
+      )
+    })
+
     await waitFor(() => {
       expect(screen.getByText('John Doe')).toBeInTheDocument()
     })
 
-    // Select status filter
     const filterSelect = screen.getByLabelText(/filter by status/i)
-    await user.selectOptions(filterSelect, 'pending')
+    await act(async () => {
+      await user.selectOptions(filterSelect, 'processing')
+    })
 
-    // Verify only pending orders are shown
-    expect(screen.getByText('John Doe')).toBeInTheDocument()
-    expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument()
+    expect(screen.queryByText('John Doe')).not.toBeInTheDocument()
+    expect(screen.getByText('Jane Smith')).toBeInTheDocument()
   })
 }) 

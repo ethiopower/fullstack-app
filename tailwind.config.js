@@ -6,9 +6,18 @@ module.exports = {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        primary: '#078930', // Ethiopian flag green
+        secondary: '#FCED00', // Ethiopian flag yellow
+        accent: '#D52B1E', // Ethiopian flag red
+      },
+      fontFamily: {
+        sans: ['var(--font-inter)'],
+        heading: ['var(--font-poppins)'],
+      },
+    },
   },
-  plugins: [
-    require('@tailwindcss/forms'),
-  ],
+  plugins: [],
+  important: '#__next',
 } 

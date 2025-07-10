@@ -1,14 +1,19 @@
 import nodemailer from 'nodemailer'
 
-// Email configuration
+// Email configuration for Gmail SMTP
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
+  host: 'smtp.gmail.com',
+  port: 465,
   secure: true,
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, ''), // Remove any spaces from the app password
   },
+  tls: {
+    // Required for Gmail
+    rejectUnauthorized: true,
+    minVersion: "TLSv1.2"
+  }
 })
 
 interface OrderNotification {
@@ -53,13 +58,14 @@ export async function sendOrderConfirmation(order: OrderNotification) {
   `
 
   try {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM,
+    const info = await transporter.sendMail({
+      from: `"Fafresh Fashion" <${process.env.GMAIL_USER}>`,
       to: order.customerEmail,
       subject: `Order Confirmation - Fafresh Cultural Fashion #${order.orderId}`,
       text: emailContent,
     })
-
+    
+    console.log('Message sent: %s', info.messageId);
     return true
   } catch (error) {
     console.error('Error sending order confirmation:', error)
@@ -88,13 +94,14 @@ export async function sendStatusUpdate(order: OrderNotification) {
   `
 
   try {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM,
+    const info = await transporter.sendMail({
+      from: `"Fafresh Fashion" <${process.env.GMAIL_USER}>`,
       to: order.customerEmail,
       subject: `Order Status Update - Fafresh Cultural Fashion #${order.orderId}`,
       text: emailContent,
     })
 
+    console.log('Message sent: %s', info.messageId);
     return true
   } catch (error) {
     console.error('Error sending status update:', error)

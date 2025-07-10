@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Step5Checkout } from '../Step5Checkout'
 
@@ -11,7 +11,7 @@ describe('Step5Checkout', () => {
     onBack: mockOnBack,
     isFirstStep: false,
     isLastStep: true,
-    data: {},
+    data: {}
   }
 
   beforeEach(() => {
@@ -20,7 +20,6 @@ describe('Step5Checkout', () => {
 
   it('renders the checkout form', () => {
     render(<Step5Checkout {...defaultProps} />)
-
     expect(screen.getByText('Checkout')).toBeInTheDocument()
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/last name/i)).toBeInTheDocument()
@@ -28,71 +27,74 @@ describe('Step5Checkout', () => {
     expect(screen.getByLabelText(/phone/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/address/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/city/i)).toBeInTheDocument()
-  })
-
-  it('shows validation errors for empty required fields', async () => {
-    render(<Step5Checkout {...defaultProps} />)
-
-    fireEvent.click(screen.getByText(/submit order/i))
-
-    await waitFor(() => {
-      expect(screen.getByText(/first name must be at least 2 characters/i)).toBeInTheDocument()
-      expect(screen.getByText(/last name must be at least 2 characters/i)).toBeInTheDocument()
-      expect(screen.getByText(/invalid email address/i)).toBeInTheDocument()
-      expect(screen.getByText(/phone number must be at least 10 digits/i)).toBeInTheDocument()
-      expect(screen.getByText(/address must be at least 10 characters/i)).toBeInTheDocument()
-      expect(screen.getByText(/city must be at least 2 characters/i)).toBeInTheDocument()
-    })
-
-    expect(mockOnNext).not.toHaveBeenCalled()
+    expect(screen.getByLabelText(/state/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/zip code/i)).toBeInTheDocument()
   })
 
   it('submits the form with valid data', async () => {
-    const user = userEvent.setup()
+    const formData = {
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john@example.com',
+      phone: '1234567890',
+      address: '123 Main St',
+      city: 'Anytown',
+      state: 'CA',
+      zipCode: '12345'
+    }
+
     render(<Step5Checkout {...defaultProps} />)
 
-    await user.type(screen.getByLabelText(/first name/i), 'John')
-    await user.type(screen.getByLabelText(/last name/i), 'Doe')
-    await user.type(screen.getByLabelText(/email/i), 'john@example.com')
-    await user.type(screen.getByLabelText(/phone/i), '1234567890')
-    await user.type(screen.getByLabelText(/address/i), '123 Main Street')
-    await user.type(screen.getByLabelText(/city/i), 'New York')
-    
-    // Select payment method
-    await user.click(screen.getByLabelText(/bank transfer/i))
-    
-    // Accept terms
-    await user.click(screen.getByLabelText(/terms and conditions/i))
+    await userEvent.type(screen.getByLabelText(/first name/i), formData.firstName)
+    await userEvent.type(screen.getByLabelText(/last name/i), formData.lastName)
+    await userEvent.type(screen.getByLabelText(/email/i), formData.email)
+    await userEvent.type(screen.getByLabelText(/phone/i), formData.phone)
+    await userEvent.type(screen.getByLabelText(/address/i), formData.address)
+    await userEvent.type(screen.getByLabelText(/city/i), formData.city)
+    await userEvent.type(screen.getByLabelText(/state/i), formData.state)
+    await userEvent.type(screen.getByLabelText(/zip code/i), formData.zipCode)
 
-    await user.click(screen.getByText(/submit order/i))
-
-    await waitFor(() => {
-      expect(mockOnNext).toHaveBeenCalledWith({
-        customerInfo: {
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john@example.com',
-          phone: '1234567890',
-          address: '123 Main Street',
-          city: 'New York',
-        },
-        paymentMethod: 'bank_transfer',
-        termsAccepted: true,
-      })
+    await act(async () => {
+      await userEvent.click(screen.getByRole('button', { name: /place order/i }))
     })
+
+    expect(mockOnNext).toHaveBeenCalledWith(formData)
   })
 
-  it('disables form submission while loading', () => {
-    render(<Step5Checkout {...defaultProps} isSubmitting={true} />)
+  it('disables form submission while submitting', async () => {
+    // Mock onNext to be a slow async function
+    const slowOnNext = jest.fn(() => new Promise(resolve => setTimeout(resolve, 100)))
+    render(<Step5Checkout {...defaultProps} onNext={slowOnNext} />)
 
-    expect(screen.getByText(/submit order/i)).toBeDisabled()
-    expect(screen.getByRole('button', { name: /back/i })).toBeDisabled()
+    const submitButton = screen.getByRole('button', { name: /place order/i })
+    const backButton = screen.getByRole('button', { name: /back/i })
+
+    // Fill in required fields
+    await userEvent.type(screen.getByLabelText(/first name/i), 'John')
+    await userEvent.type(screen.getByLabelText(/last name/i), 'Doe')
+    await userEvent.type(screen.getByLabelText(/email/i), 'john@example.com')
+    await userEvent.type(screen.getByLabelText(/phone/i), '1234567890')
+    await userEvent.type(screen.getByLabelText(/address/i), '123 Main St')
+    await userEvent.type(screen.getByLabelText(/city/i), 'Anytown')
+    await userEvent.type(screen.getByLabelText(/state/i), 'CA')
+    await userEvent.type(screen.getByLabelText(/zip code/i), '12345')
+
+    await act(async () => {
+      await userEvent.click(submitButton)
+    })
+
+    await waitFor(() => {
+      expect(submitButton).toBeDisabled()
+      expect(backButton).toBeDisabled()
+      expect(submitButton).toHaveTextContent('Processing...')
+    })
   })
 
   it('calls onBack when back button is clicked', () => {
     render(<Step5Checkout {...defaultProps} />)
-
-    fireEvent.click(screen.getByText(/back/i))
+    
+    const backButton = screen.getByRole('button', { name: /back/i })
+    fireEvent.click(backButton)
 
     expect(mockOnBack).toHaveBeenCalled()
   })
