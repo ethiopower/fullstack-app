@@ -1,170 +1,214 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import {
+  Box,
+  Container,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  Button,
+  Stack,
+  TextField,
+  FormControl,
+  FormLabel,
+  FormHelperText,
+  Alert
+} from '@mui/material';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { THEME } from '@/lib/constants';
 
 type Measurements = {
-  shoulder: number;
-  chest: number;
-  waist: number;
-  hip: number;
-  length: number;
-  sleeve: number;
-  neck: number;
-  inseam?: number;
+  [key: string]: string;
 };
 
-type Design = {
-  id: string;
-  name: string;
-  category: 'men' | 'women';
-  imageUrl: string;
-  price: number;
-  description: string;
-};
+const measurementFields = {
+  men: [
+    { id: 'neck', label: 'Neck', helper: 'Measure around the base of the neck' },
+    { id: 'chest', label: 'Chest', helper: 'Measure around the fullest part of the chest' },
+    { id: 'waist', label: 'Waist', helper: 'Measure around natural waistline' },
+    { id: 'hips', label: 'Hips', helper: 'Measure around the fullest part of the hips' },
+    { id: 'shoulder', label: 'Shoulder Width', helper: 'Measure from shoulder point to shoulder point' },
+    { id: 'sleeve', label: 'Sleeve Length', helper: 'Measure from shoulder to wrist' },
+    { id: 'inseam', label: 'Inseam', helper: 'Measure from crotch to ankle' },
+    { id: 'height', label: 'Height', helper: 'Your full height' }
+  ],
+  women: [
+    { id: 'bust', label: 'Bust', helper: 'Measure around the fullest part of the bust' },
+    { id: 'waist', label: 'Waist', helper: 'Measure around natural waistline' },
+    { id: 'hips', label: 'Hips', helper: 'Measure around the fullest part of the hips' },
+    { id: 'shoulder', label: 'Shoulder Width', helper: 'Measure from shoulder point to shoulder point' },
+    { id: 'sleeve', label: 'Sleeve Length', helper: 'Measure from shoulder to wrist' },
+    { id: 'length', label: 'Dress Length', helper: 'Measure from shoulder to desired length' },
+    { id: 'height', label: 'Height', helper: 'Your full height' }
+  ]
+} as const;
 
-const measurementLabels = {
-  shoulder: { en: 'Shoulder Width', am: 'ትከሻ ስፋት' },
-  chest: { en: 'Chest/Bust', am: 'ደረት' },
-  waist: { en: 'Waist', am: 'ወገብ' },
-  hip: { en: 'Hip', am: 'ዳሌ' },
-  length: { en: 'Length', am: 'ርዝመት' },
-  sleeve: { en: 'Sleeve Length', am: 'እጅ ርዝመት' },
-  neck: { en: 'Neck', am: 'አንገት' },
-  inseam: { en: 'Inseam', am: 'የእግር ውስጥ ርዝመት' },
-};
-
-export default function Step3() {
+export default function MeasurementsPage() {
   const router = useRouter();
-  const [selectedDesign, setSelectedDesign] = useState<Design | null>(null);
-  const [measurements, setMeasurements] = useState<Measurements>({
-    shoulder: 0,
-    chest: 0,
-    waist: 0,
-    hip: 0,
-    length: 0,
-    sleeve: 0,
-    neck: 0,
-  });
+  const searchParams = useSearchParams();
+  const gender = searchParams.get('gender') as keyof typeof measurementFields;
+  const occasion = searchParams.get('occasion');
+  const designId = searchParams.get('design');
+
+  const [measurements, setMeasurements] = useState<Measurements>({});
+  const [errors, setErrors] = useState<Measurements>({});
 
   useEffect(() => {
-    // Load selected design from session storage
-    const storedDesign = sessionStorage.getItem('selectedDesign');
-    if (!storedDesign) {
-      router.push('/customize/step2');
+    if (!gender || !occasion || !designId) {
+      router.push('/customize/step1');
       return;
     }
 
-    const design = JSON.parse(storedDesign);
-    setSelectedDesign(design);
+    // Initialize measurements
+    const fields = measurementFields[gender];
+    const initialMeasurements = fields.reduce((acc, field) => {
+      acc[field.id] = '';
+      return acc;
+    }, {} as Measurements);
+    setMeasurements(initialMeasurements);
+  }, [gender, occasion, designId, router]);
 
-    // Load existing measurements if any
-    const storedMeasurements = sessionStorage.getItem('measurements');
-    if (storedMeasurements) {
-      setMeasurements(JSON.parse(storedMeasurements));
-    }
-  }, [router]);
-
-  const handleMeasurementChange = (
-    field: keyof Measurements,
-    value: string
-  ) => {
-    const numValue = parseFloat(value);
-    if (isNaN(numValue)) return;
-
+  const handleInputChange = (field: string, value: string) => {
     setMeasurements(prev => ({
       ...prev,
-      [field]: numValue,
+      [field]: value
     }));
+
+    // Clear error when user types
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
   };
 
   const validateMeasurements = () => {
-    return Object.values(measurements).every(value => value > 0);
+    const newErrors: Measurements = {};
+    const fields = measurementFields[gender];
+
+    fields.forEach(field => {
+      if (!measurements[field.id]) {
+        newErrors[field.id] = 'This field is required';
+      } else if (isNaN(Number(measurements[field.id]))) {
+        newErrors[field.id] = 'Please enter a valid number';
+      } else if (Number(measurements[field.id]) <= 0) {
+        newErrors[field.id] = 'Measurement must be greater than 0';
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleNext = () => {
     if (validateMeasurements()) {
-      sessionStorage.setItem('measurements', JSON.stringify(measurements));
-      router.push('/customize/step4');
+      const params = new URLSearchParams();
+      Array.from(searchParams.entries()).forEach(([key, value]) => {
+        params.append(key, value);
+      });
+      params.set('measurements', JSON.stringify(measurements));
+      router.push(`/customize/step4?${params.toString()}`);
     }
   };
 
   const handleBack = () => {
-    router.push('/customize/step2');
+    router.push(`/customize/step2?gender=${gender}&occasion=${occasion}`);
   };
 
-  if (!selectedDesign) {
-    return null;
-  }
+  const fields = measurementFields[gender] || [];
 
   return (
-    <div>
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-medium text-slate-900 mb-2">Enter Measurements</h2>
-        <p className="text-slate-600">
-          Please provide accurate measurements for your selected design
-        </p>
-      </div>
+    <Box sx={{ py: THEME.spacing.section, minHeight: '100vh', mt: 8 }}>
+      <Container maxWidth="lg">
+        <Typography
+          variant="h1"
+          sx={{
+            fontSize: { xs: '2rem', md: '2.5rem' },
+            fontFamily: THEME.typography.headingFamily,
+            fontWeight: 500,
+            mb: 2
+          }}
+        >
+          Your Measurements
+        </Typography>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Design Info */}
-        <div>
-          <div className="relative h-96 rounded-lg overflow-hidden mb-4">
-            <Image
-              src={selectedDesign.imageUrl}
-              alt={selectedDesign.name}
-              fill
-              className="object-cover"
-            />
-          </div>
-          <h3 className="text-lg font-medium text-slate-900">{selectedDesign.name}</h3>
-          <p className="text-slate-600 mt-2">{selectedDesign.description}</p>
-        </div>
+        <Typography variant="h6" color="text.secondary" sx={{ mb: 6 }}>
+          Please provide your measurements in inches
+        </Typography>
 
-        {/* Measurement Form */}
-        <div className="space-y-4">
-          {Object.entries(measurementLabels).map(([field, labels]) => (
-            (!field.includes('inseam') || selectedDesign.category === 'men') && (
-              <div key={field} className="space-y-2">
-                <label className="block">
-                  <span className="text-slate-900 font-medium">{labels.en}</span>
-                  <span className="text-slate-600 ml-2">({labels.am})</span>
-                </label>
-                <input
-                  type="number"
-                  value={measurements[field as keyof Measurements] || ''}
-                  onChange={(e) => handleMeasurementChange(field as keyof Measurements, e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+        <Alert severity="info" sx={{ mb: 4 }}>
+          For the most accurate fit, we recommend having someone help you take measurements.
+          Watch our measurement guide video for detailed instructions.
+        </Alert>
+
+        <Grid container spacing={4}>
+          {fields.map((field) => (
+            <Grid item xs={12} sm={6} key={field.id}>
+              <FormControl fullWidth error={Boolean(errors[field.id])}>
+                <FormLabel
+                  sx={{
+                    color: 'text.primary',
+                    mb: 1
+                  }}
+                >
+                  {field.label}
+                </FormLabel>
+                <TextField
+                  value={measurements[field.id] || ''}
+                  onChange={(e) => handleInputChange(field.id, e.target.value)}
                   placeholder="Enter measurement in inches"
-                  step="0.1"
+                  type="number"
+                  inputProps={{ step: 0.25 }}
+                  error={Boolean(errors[field.id])}
+                  helperText={errors[field.id] || field.helper}
+                  fullWidth
                 />
-              </div>
-            )
+              </FormControl>
+            </Grid>
           ))}
-        </div>
-      </div>
+        </Grid>
 
-      {/* Navigation */}
-      <div className="flex justify-between mt-8">
-        <button
-          onClick={handleBack}
-          className="px-6 py-2 text-slate-600 font-medium hover:text-slate-900"
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          justifyContent="center"
+          sx={{ mt: 6 }}
         >
-          Back
-        </button>
-        <button
-          onClick={handleNext}
-          disabled={!validateMeasurements()}
-          className={`px-6 py-2 rounded-lg text-white font-medium transition-all ${
-            validateMeasurements()
-              ? 'bg-slate-900 hover:bg-slate-800'
-              : 'bg-slate-400 cursor-not-allowed'
-          }`}
-        >
-          Continue to Review
-        </button>
-      </div>
-    </div>
+          <Button
+            variant="outlined"
+            onClick={handleBack}
+            sx={{
+              borderColor: THEME.colors.primary,
+              color: THEME.colors.primary,
+              px: 6,
+              '&:hover': {
+                borderColor: THEME.colors.secondary,
+                color: THEME.colors.secondary
+              }
+            }}
+          >
+            Back
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleNext}
+            sx={{
+              bgcolor: THEME.colors.primary,
+              color: 'white',
+              px: 6,
+              '&:hover': {
+                bgcolor: THEME.colors.secondary
+              }
+            }}
+          >
+            Next: Review
+          </Button>
+        </Stack>
+      </Container>
+    </Box>
   );
+} 
 } 

@@ -28,7 +28,7 @@ export default function HeroSection() {
       <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
         <div className="relative w-32 h-32 mx-auto mb-8 invert brightness-0">
           <Image
-            src="/images/fafresh-logo.png"
+            src="/images/fafresh-logo-white.png"
             alt="Fafresh Fashion Logo"
             fill
             className="object-contain"

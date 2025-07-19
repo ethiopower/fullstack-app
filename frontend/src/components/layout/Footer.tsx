@@ -1,229 +1,210 @@
-import { useState } from 'react';
+'use client';
+
 import {
   Box,
   Container,
   Grid,
   Typography,
-  TextField,
   IconButton,
-  Link,
   Stack,
-  InputAdornment,
-  Alert,
-  Snackbar,
+  Link as MuiLink
 } from '@mui/material';
+import NextLink from 'next/link';
 import {
   Instagram as InstagramIcon,
   YouTube as YouTubeIcon,
-  MusicNote as TikTokIcon,
-  ArrowForward as ArrowForwardIcon,
+  WhatsApp as WhatsAppIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  LocationOn as LocationIcon
 } from '@mui/icons-material';
-import { colors } from '@/lib/theme';
-
-const INSTAGRAM_URL = 'https://www.instagram.com/fafresh.cultural.fashion/';
-
-const socialLinks = [
-  {
-    label: 'Instagram',
-    href: INSTAGRAM_URL,
-    icon: <InstagramIcon />,
-  },
-  {
-    label: 'YouTube',
-    href: 'https://www.youtube.com/@fafreshfashion505',
-    icon: <YouTubeIcon />,
-  },
-  {
-    label: 'TikTok',
-    href: 'https://www.tiktok.com/@fafresh.cultural.fashion',
-    icon: <TikTokIcon />,
-  },
-];
-
-const quickLinks = [
-  { title: 'About Us', href: '/about' },
-  { title: 'Shop', href: '/shop' },
-  { title: 'Customize', href: '/customize' },
-  { title: 'Contact', href: '/contact' },
-  { title: 'Visit Store', href: '/visit' },
-];
+import { THEME, BUSINESS_INFO } from '@/lib/constants';
 
 export default function Footer() {
-  const [email, setEmail] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error',
-  });
-
-  const handleNewsletterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email) return;
-    
-    setIsSubmitting(true);
-    
-    try {
-      const response = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to subscribe');
-      }
-
-      setSnackbar({
-        open: true,
-        message: 'Thank you for subscribing!',
-        severity: 'success',
-      });
-      setEmail('');
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error instanceof Error ? error.message : 'Failed to subscribe',
-        severity: 'error',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
   return (
     <Box
       component="footer"
       sx={{
-        backgroundColor: colors.black,
-        color: colors.white,
+        bgcolor: 'background.paper',
         py: 6,
-        mt: 'auto',
+        mt: 'auto'
       }}
     >
       <Container maxWidth="lg">
         <Grid container spacing={4}>
-          {/* Social Links */}
-          <Grid item xs={12} md={4}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Connect With Us
+          {/* Contact Info */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontFamily: THEME.typography.headingFamily,
+                mb: 2
+              }}
+            >
+              Contact Us
             </Typography>
-            <Stack direction="row" spacing={1}>
-              {socialLinks.map((social) => (
-                <IconButton
-                  key={social.label}
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <PhoneIcon sx={{ color: THEME.colors.primary }} />
+                <MuiLink
                   component="a"
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{
-                    color: colors.white,
-                    '&:hover': {
-                      color: colors.yellow,
-                    },
-                  }}
-                  aria-label={social.label}
+                  href={`tel:${BUSINESS_INFO.phone}`}
+                  sx={{ color: 'inherit', textDecoration: 'none' }}
                 >
-                  {social.icon}
-                </IconButton>
-              ))}
+                  {BUSINESS_INFO.phone}
+                </MuiLink>
+              </Stack>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <EmailIcon sx={{ color: THEME.colors.primary }} />
+                <MuiLink
+                  component="a"
+                  href={`mailto:${BUSINESS_INFO.contactEmail}`}
+                  sx={{ color: 'inherit', textDecoration: 'none' }}
+                >
+                  {BUSINESS_INFO.contactEmail}
+                </MuiLink>
+              </Stack>
+              <Stack direction="row" spacing={1} alignItems="flex-start">
+                <LocationIcon sx={{ color: THEME.colors.primary }} />
+                <Typography>
+                  123 Fashion Street<br />
+                  Silver Spring, MD 20910
+                </Typography>
+              </Stack>
             </Stack>
           </Grid>
 
           {/* Quick Links */}
-          <Grid item xs={12} md={4}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
+          <Grid item xs={12} sm={6} md={4}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontFamily: THEME.typography.headingFamily,
+                mb: 2
+              }}
+            >
               Quick Links
             </Typography>
             <Stack spacing={1}>
-              {quickLinks.map((link) => (
-                <Link
-                  key={link.title}
-                  href={link.href}
+              <NextLink href="/about" passHref legacyBehavior>
+                <MuiLink
+                  component="a"
                   sx={{
-                    color: colors.white,
+                    color: 'inherit',
                     textDecoration: 'none',
-                    '&:hover': {
-                      color: colors.yellow,
-                    },
+                    '&:hover': { color: THEME.colors.primary }
                   }}
                 >
-                  {link.title}
-                </Link>
-              ))}
+                  About Us
+                </MuiLink>
+              </NextLink>
+              <NextLink href="/shop" passHref legacyBehavior>
+                <MuiLink
+                  component="a"
+                  sx={{
+                    color: 'inherit',
+                    textDecoration: 'none',
+                    '&:hover': { color: THEME.colors.primary }
+                  }}
+                >
+                  Shop
+                </MuiLink>
+              </NextLink>
+              <NextLink href="/customize" passHref legacyBehavior>
+                <MuiLink
+                  component="a"
+                  sx={{
+                    color: 'inherit',
+                    textDecoration: 'none',
+                    '&:hover': { color: THEME.colors.primary }
+                  }}
+                >
+                  Customize
+                </MuiLink>
+              </NextLink>
+              <NextLink href="/contact" passHref legacyBehavior>
+                <MuiLink
+                  component="a"
+                  sx={{
+                    color: 'inherit',
+                    textDecoration: 'none',
+                    '&:hover': { color: THEME.colors.primary }
+                  }}
+                >
+                  Contact
+                </MuiLink>
+              </NextLink>
             </Stack>
           </Grid>
 
-          {/* Newsletter */}
+          {/* Store Hours */}
           <Grid item xs={12} md={4}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Stay Updated
-            </Typography>
-            <Box
-              component="form"
-              onSubmit={handleNewsletterSubmit}
+            <Typography
+              variant="h6"
               sx={{
-                display: 'flex',
-                gap: 1,
+                fontFamily: THEME.typography.headingFamily,
+                mb: 2
               }}
             >
-              <TextField
-                placeholder="Enter email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                variant="outlined"
-                size="small"
-                fullWidth
-                required
-                disabled={isSubmitting}
+              Store Hours
+            </Typography>
+            <Stack spacing={1}>
+              <Typography>
+                <strong>Weekdays:</strong> {BUSINESS_INFO.storeHours.weekdays}
+              </Typography>
+              <Typography>
+                <strong>Saturday:</strong> {BUSINESS_INFO.storeHours.saturday}
+              </Typography>
+              <Typography>
+                <strong>Sunday:</strong> {BUSINESS_INFO.storeHours.sunday}
+              </Typography>
+            </Stack>
+
+            {/* Social Links */}
+            <Stack direction="row" spacing={1} sx={{ mt: 4 }}>
+              <IconButton
+                component="a"
+                href={BUSINESS_INFO.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: colors.white,
-                    '& fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.23)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: colors.yellow,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: colors.yellow,
-                    },
-                  },
-                  '& .MuiInputBase-input::placeholder': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                  },
+                  color: THEME.colors.primary,
+                  '&:hover': {
+                    color: THEME.colors.secondary
+                  }
                 }}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        type="submit"
-                        edge="end"
-                        disabled={isSubmitting}
-                        sx={{
-                          color: colors.yellow,
-                          '&:hover': {
-                            color: colors.white,
-                          },
-                        }}
-                      >
-                        <ArrowForwardIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
+              >
+                <InstagramIcon />
+              </IconButton>
+              <IconButton
+                component="a"
+                href={BUSINESS_INFO.youtubeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  color: THEME.colors.primary,
+                  '&:hover': {
+                    color: THEME.colors.secondary
+                  }
                 }}
-              />
-            </Box>
+              >
+                <YouTubeIcon />
+              </IconButton>
+              <IconButton
+                component="a"
+                href={BUSINESS_INFO.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  color: THEME.colors.primary,
+                  '&:hover': {
+                    color: THEME.colors.secondary
+                  }
+                }}
+              >
+                <WhatsAppIcon />
+              </IconButton>
+            </Stack>
           </Grid>
         </Grid>
 
@@ -231,27 +212,11 @@ export default function Footer() {
         <Typography
           variant="body2"
           align="center"
-          sx={{ mt: 4, opacity: 0.7 }}
+          sx={{ mt: 4, color: 'text.secondary' }}
         >
-          © {new Date().getFullYear()} Fafresh Fashion. All rights reserved.
+          © {new Date().getFullYear()} {BUSINESS_INFO.brandName}. All rights reserved.
         </Typography>
       </Container>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 } 

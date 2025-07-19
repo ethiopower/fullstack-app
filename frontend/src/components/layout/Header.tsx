@@ -108,7 +108,7 @@ const Header = () => {
           <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
             <Box sx={{ width: 120, height: 50, position: 'relative' }}>
               <Image
-                src="/images/fafresh-logo.png"
+                src="/images/fafresh-logo-white.png"
                 alt={BUSINESS_INFO.brandName}
                 fill
                 style={{ objectFit: 'contain' }}
