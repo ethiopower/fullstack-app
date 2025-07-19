@@ -32,9 +32,12 @@ const Header = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const isHomePage = pathname === '/';
 
   useEffect(() => {
+    setIsClient(true);
+    
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
@@ -96,9 +99,9 @@ const Header = () => {
     <AppBar 
       position="fixed" 
       sx={{ 
-        bgcolor: isHomePage && !isScrolled ? 'transparent' : 'rgba(33, 33, 33, 0.95)',
-        boxShadow: isHomePage && !isScrolled ? 'none' : 1,
-        backdropFilter: isHomePage && !isScrolled ? 'none' : 'blur(10px)',
+        bgcolor: isClient && isHomePage && !isScrolled ? 'transparent' : 'rgba(33, 33, 33, 0.95)',
+        boxShadow: isClient && isHomePage && !isScrolled ? 'none' : 1,
+        backdropFilter: isClient && isHomePage && !isScrolled ? 'none' : 'blur(10px)',
         transition: 'all 0.3s ease'
       }}
     >
@@ -111,6 +114,7 @@ const Header = () => {
                 src="/images/fafresh-logo-white.png"
                 alt={BUSINESS_INFO.brandName}
                 fill
+                sizes="120px"
                 style={{ objectFit: 'contain' }}
                 priority
               />

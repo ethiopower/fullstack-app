@@ -43,6 +43,8 @@ export default function Step4() {
 
   useEffect(() => {
     // Load data from session storage
+    if (typeof window === 'undefined') return;
+    
     const storedDesigns = sessionStorage.getItem('selectedDesigns');
     const storedMeasurements = sessionStorage.getItem('measurements');
 
@@ -75,11 +77,13 @@ export default function Step4() {
 
   const handleNext = () => {
     // Store order summary in session storage
-    sessionStorage.setItem('orderSummary', JSON.stringify({
-      subtotal,
-      deposit,
-      balance: subtotal - deposit,
-    }));
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('orderSummary', JSON.stringify({
+        subtotal,
+        deposit,
+        balance: subtotal - deposit,
+      }));
+    }
     router.push('/customize/step5');
   };
 
@@ -111,6 +115,7 @@ export default function Step4() {
                           src={design.imageUrl}
                           alt={design.name}
                           fill
+                          sizes="96px"
                           className="object-cover"
                         />
                       </div>

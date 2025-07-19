@@ -15,7 +15,7 @@ import {
   Chip
 } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { THEME} from '@/lib/constants';
+import { THEME, PRODUCT_DESIGNS, Gender, Occasion } from '@/lib/constants';
 
 
 export default function DesignSelectionPage() {
@@ -92,7 +92,7 @@ export default function DesignSelectionPage() {
                 <CardMedia
                   component="img"
                   height="300"
-                  image={design.images[0]}
+                  image={design.images[0].src}
                   alt={design.name}
                   sx={{ objectFit: 'cover' }}
                 />

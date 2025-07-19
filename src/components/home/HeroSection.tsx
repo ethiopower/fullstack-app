@@ -18,6 +18,7 @@ export default function HeroSection() {
           src="/images/instagram/imgi_13_278392924_109404108407718_3275092387011595748_n.webp"
           alt="Ethiopian Fashion Background"
           fill
+          sizes="100vw"
           className="object-cover"
           priority
         />
@@ -31,6 +32,7 @@ export default function HeroSection() {
             src="/images/fafresh-logo-white.png"
             alt="Fafresh Fashion Logo"
             fill
+            sizes="128px"
             className="object-contain"
           />
         </div>

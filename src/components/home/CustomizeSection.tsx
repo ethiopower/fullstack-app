@@ -72,6 +72,7 @@ const CustomizeSection = () => {
                 src="/images/instagram/imgi_1_278193034_380033810648589_636440153269846173_n.jpg"
                 alt="Ethiopian Traditional Dress"
                 fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 style={{ objectFit: 'cover' }}
               />
               <Box

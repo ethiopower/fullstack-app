@@ -35,6 +35,8 @@ export default function Step5() {
 
   useEffect(() => {
     // Load order summary from session storage
+    if (typeof window === 'undefined') return;
+    
     const storedSummary = sessionStorage.getItem('orderSummary');
     if (!storedSummary) {
       router.push('/customize/step4');
@@ -78,6 +80,8 @@ export default function Step5() {
 
     try {
       // Get all data from session storage
+      if (typeof window === 'undefined') return;
+      
       const designs = JSON.parse(sessionStorage.getItem('selectedDesigns')!);
       const measurements = JSON.parse(sessionStorage.getItem('measurements')!);
 
@@ -102,7 +106,9 @@ export default function Step5() {
       const { orderId } = await response.json();
 
       // Clear session storage
-      sessionStorage.clear();
+      if (typeof window !== 'undefined') {
+        sessionStorage.clear();
+      }
 
       // Redirect to confirmation page
       router.push(`/order-confirmation/${orderId}`);

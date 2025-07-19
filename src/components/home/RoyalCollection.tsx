@@ -37,6 +37,7 @@ export default function RoyalCollection() {
               src="/images/instagram/imgi_11_278184439_698488201472262_8424562580223263652_n.webp"
               alt="Royal Collection Featured"
               fill
+              sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent" />
@@ -51,6 +52,7 @@ export default function RoyalCollection() {
                   src="/images/instagram/imgi_19_285025120_129252639746382_2835252277343536846_n.webp"
                   alt="Royal Collection Detail 1"
                   fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
                   className="object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-br from-[#078930]/20 via-transparent to-[#EF3340]/20" />
@@ -60,6 +62,7 @@ export default function RoyalCollection() {
                   src="/images/instagram/imgi_9_278196211_1514753668920561_5538798167342816339_n.webp"
                   alt="Royal Collection Detail 2"
                   fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
                   className="object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-br from-[#FDEF42]/20 via-transparent to-[#078930]/20" />

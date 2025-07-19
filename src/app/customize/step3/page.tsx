@@ -210,5 +210,4 @@ export default function MeasurementsPage() {
       </Container>
     </Box>
   );
-} 
-} 
+}

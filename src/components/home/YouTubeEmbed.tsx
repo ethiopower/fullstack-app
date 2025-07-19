@@ -3,11 +3,16 @@
 import { Box } from '@mui/material';
 import ReactPlayer from 'react-player';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BUSINESS_INFO } from '@/lib/constants';
 
 export default function YouTubeEmbed() {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <Box 
@@ -36,6 +41,7 @@ export default function YouTubeEmbed() {
             src="/images/instagram/imgi_13_278392924_109404108407718_3275092387011595748_n.webp"
             alt="Video Thumbnail"
             fill
+            sizes="(max-width: 768px) 100vw, 70vw"
             style={{ objectFit: 'cover' }}
           />
           {/* Play button overlay */}
@@ -76,26 +82,28 @@ export default function YouTubeEmbed() {
           />
         </Box>
       )}
-      <ReactPlayer
-        url={BUSINESS_INFO.youtubeUrl}
-        width="100%"
-        height="100%"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-        }}
-        playing={isPlaying}
-        controls={isPlaying}
-        config={{
-          youtube: {
-            playerVars: {
-              modestbranding: 1,
-              rel: 0
+      {isClient && isPlaying && (
+        <ReactPlayer
+          url={BUSINESS_INFO.youtubeUrl}
+          width="100%"
+          height="100%"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+          }}
+          playing={isPlaying}
+          controls={isPlaying}
+          config={{
+            youtube: {
+              playerVars: {
+                modestbranding: 1,
+                rel: 0
+              }
             }
-          }
-        }}
-      />
+          }}
+        />
+      )}
     </Box>
   );
 } 

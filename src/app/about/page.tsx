@@ -93,6 +93,7 @@ export default function AboutPage() {
               src="/images/instagram/imgi_1_278193034_380033810648589_636440153269846173_n.jpg"
               alt="Fafresh Fashion Workshop"
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
               style={{ objectFit: 'cover' }}
             />
           </Box>
@@ -261,6 +262,7 @@ export default function AboutPage() {
                       src="/images/instagram/imgi_3_353591052_285357163930407_5308760856456849800_n.jpg"
                       alt="Fafresh Fashion Journey"
                       fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
                       style={{ objectFit: 'cover' }}
                     />
                   </Box>

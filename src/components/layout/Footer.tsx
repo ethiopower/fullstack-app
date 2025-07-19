@@ -214,7 +214,7 @@ export default function Footer() {
           align="center"
           sx={{ mt: 4, color: 'text.secondary' }}
         >
-          © {new Date().getFullYear()} {BUSINESS_INFO.brandName}. All rights reserved.
+                        © 2024 {BUSINESS_INFO.brandName}. All rights reserved.
         </Typography>
       </Container>
     </Box>
