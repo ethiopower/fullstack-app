@@ -1,27 +1,17 @@
-'use client'
+'use client';
 
-import { SessionProvider } from 'next-auth/react'
-import { Toaster } from 'react-hot-toast'
-import { useEffect, useState } from 'react'
-import { initAnalytics } from '../lib/analytics'
-import CssBaseline from '@mui/material/CssBaseline'
-import { StyledEngineProvider } from '@mui/material'
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { CartProvider } from '@/lib/CartContext';
+import theme from '@/lib/theme';
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    initAnalytics()
-  }, [])
-
   return (
-    <StyledEngineProvider injectFirst>
-      <SessionProvider>
-        <CssBaseline />
-        {mounted ? children : null}
-        <Toaster />
-      </SessionProvider>
-    </StyledEngineProvider>
-  )
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <CartProvider>
+        {children}
+      </CartProvider>
+    </ThemeProvider>
+  );
 } 

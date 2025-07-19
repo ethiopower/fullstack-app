@@ -1,106 +1,237 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useState } from 'react';
+import {
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  Button,
+  Stack,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel
+} from '@mui/material';
+import { useRouter } from 'next/navigation';
+import { THEME, PRODUCT_DESIGNS, Gender, Occasion } from '@/lib/constants';
 
-interface CategoryQuantity {
-  men: number
-  women: number
-  boys: number
-  girls: number
-}
+// Client-side component for the form
+export default function StyleSelectionPage() {
+  const router = useRouter();
+  const [formState, setFormState] = useState<{
+    gender: Gender;
+    occasion: Occasion | '';
+  }>({
+    gender: 'men',
+    occasion: ''
+  });
 
-export default function Step1() {
-  const router = useRouter()
-  const [quantities, setQuantities] = useState<CategoryQuantity>({
-    men: 0,
-    women: 0,
-    boys: 0,
-    girls: 0,
-  })
+  const handleGenderChange = (newGender: Gender) => {
+    setFormState({
+      gender: newGender,
+      occasion: ''
+    });
+  };
 
-  const totalItems = Object.values(quantities).reduce((a, b) => a + b, 0)
-
-  const handleQuantityChange = (category: keyof CategoryQuantity, value: number) => {
-    setQuantities(prev => ({
+  const handleOccasionChange = (newOccasion: Occasion) => {
+    setFormState(prev => ({
       ...prev,
-      [category]: Math.max(0, value), // Prevent negative values
-    }))
-  }
+      occasion: newOccasion
+    }));
+  };
 
   const handleNext = () => {
-    if (totalItems > 0) {
-      // Store quantities in session storage for later steps
-      sessionStorage.setItem('orderQuantities', JSON.stringify(quantities))
-      router.push('/customize/step2')
+    if (formState.gender && formState.occasion) {
+      const params = new URLSearchParams();
+      params.set('gender', formState.gender);
+      params.set('occasion', formState.occasion);
+      router.push(`/customize/step2?${params.toString()}`);
     }
-  }
+  };
+
+  // Get available occasions for the selected gender
+  const availableOccasions = Object.keys(PRODUCT_DESIGNS[formState.gender]) as Occasion[];
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
-        <div className="p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Step 1: Select Quantities</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              How many items would you like to customize for each category?
-            </p>
-          </div>
+    <>
+      <Typography
+        variant="h1"
+        sx={{
+          fontSize: { xs: '2rem', md: '2.5rem' },
+          fontFamily: THEME.typography.headingFamily,
+          fontWeight: 500,
+          mb: 2,
+          color: 'text.primary'
+        }}
+      >
+        Create Your Custom Design
+      </Typography>
 
-          <div className="space-y-6">
-            {Object.entries(quantities).map(([category, quantity]) => (
-              <div key={category} className="flex items-center justify-between">
-                <label className="text-lg font-medium text-gray-900 capitalize">
-                  {category}
-                </label>
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => handleQuantityChange(category as keyof CategoryQuantity, quantity - 1)}
-                    className="rounded-full w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300"
-                  >
-                    -
-                  </button>
-                  <span className="w-8 text-center">{quantity}</span>
-                  <button
-                    onClick={() => handleQuantityChange(category as keyof CategoryQuantity, quantity + 1)}
-                    className="rounded-full w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            ))}
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          mb: 6,
+          color: 'text.secondary',
+          fontFamily: THEME.typography.headingFamily
+        }}
+      >
+        Let's design your perfect attire
+      </Typography>
 
-            <div className="mt-8 border-t pt-6">
-              <div className="flex justify-between items-center text-lg font-medium">
-                <span>Total Items:</span>
-                <span>{totalItems}</span>
-              </div>
-            </div>
+      <Grid container spacing={4}>
+        {/* Gender Selection */}
+        <Grid item xs={12} md={6}>
+          <Card 
+            elevation={0} 
+            sx={{ 
+              height: '100%',
+              bgcolor: 'background.paper',
+              transition: 'transform 0.2s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-4px)'
+              }
+            }}
+          >
+            <CardContent>
+              <FormControl component="fieldset" fullWidth>
+                <FormLabel
+                  component="legend"
+                  sx={{
+                    fontSize: '1.25rem',
+                    fontFamily: THEME.typography.headingFamily,
+                    color: 'text.primary',
+                    mb: 3
+                  }}
+                >
+                  Who is this for?
+                </FormLabel>
+                <RadioGroup
+                  value={formState.gender}
+                  onChange={(e) => handleGenderChange(e.target.value as Gender)}
+                >
+                  <Stack spacing={2}>
+                    <FormControlLabel
+                      value="men"
+                      control={
+                        <Radio
+                          sx={{
+                            color: THEME.colors.primary,
+                            '&.Mui-checked': {
+                              color: THEME.colors.primary
+                            }
+                          }}
+                        />
+                      }
+                      label="Men's Collection"
+                    />
+                    <FormControlLabel
+                      value="women"
+                      control={
+                        <Radio
+                          sx={{
+                            color: THEME.colors.primary,
+                            '&.Mui-checked': {
+                              color: THEME.colors.primary
+                            }
+                          }}
+                        />
+                      }
+                      label="Women's Collection"
+                    />
+                  </Stack>
+                </RadioGroup>
+              </FormControl>
+            </CardContent>
+          </Card>
+        </Grid>
 
-            <div className="mt-8 flex justify-between">
-              <Link
-                href="/"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300"
-              >
-                Back
-              </Link>
-              <button
-                onClick={handleNext}
-                disabled={totalItems === 0}
-                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white
-                  ${totalItems === 0 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-indigo-600 hover:bg-indigo-700'
-                  }`}
-              >
-                Next Step
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+        {/* Occasion Selection */}
+        <Grid item xs={12} md={6}>
+          <Card 
+            elevation={0} 
+            sx={{ 
+              height: '100%',
+              bgcolor: 'background.paper',
+              transition: 'transform 0.2s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-4px)'
+              }
+            }}
+          >
+            <CardContent>
+              <FormControl component="fieldset" fullWidth>
+                <FormLabel
+                  component="legend"
+                  sx={{
+                    fontSize: '1.25rem',
+                    fontFamily: THEME.typography.headingFamily,
+                    color: 'text.primary',
+                    mb: 3
+                  }}
+                >
+                  What's the occasion?
+                </FormLabel>
+                <RadioGroup
+                  value={formState.occasion}
+                  onChange={(e) => handleOccasionChange(e.target.value as Occasion)}
+                >
+                  <Stack spacing={2}>
+                    {availableOccasions.map((occasionId) => (
+                      <FormControlLabel
+                        key={occasionId}
+                        value={occasionId}
+                        control={
+                          <Radio
+                            sx={{
+                              color: THEME.colors.primary,
+                              '&.Mui-checked': {
+                                color: THEME.colors.primary
+                              }
+                            }}
+                          />
+                        }
+                        label={occasionId.charAt(0).toUpperCase() + occasionId.slice(1)}
+                      />
+                    ))}
+                  </Stack>
+                </RadioGroup>
+              </FormControl>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
+        justifyContent="center"
+        sx={{ mt: 6 }}
+      >
+        <Button
+          variant="contained"
+          onClick={handleNext}
+          disabled={!formState.gender || !formState.occasion}
+          sx={{
+            bgcolor: THEME.colors.primary,
+            color: 'white',
+            px: 6,
+            py: 1.5,
+            fontSize: '1rem',
+            fontWeight: 500,
+            '&:hover': {
+              bgcolor: THEME.colors.secondary
+            },
+            '&.Mui-disabled': {
+              bgcolor: 'action.disabledBackground',
+              color: 'action.disabled'
+            }
+          }}
+        >
+          Next: Choose Design
+        </Button>
+      </Stack>
+    </>
+  );
 } 

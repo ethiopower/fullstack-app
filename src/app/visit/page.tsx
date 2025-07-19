@@ -1,147 +1,217 @@
-'use client'
+'use client';
 
 import {
   Box,
   Container,
   Typography,
-  Paper,
   Grid,
+  Paper,
+  Stack,
   Button,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-} from '@mui/material'
+  Divider
+} from '@mui/material';
 import {
-  LocationOn,
-  Phone,
-  AccessTime,
-  DirectionsCar,
-  LocalParking,
-  ShoppingCart,
-} from '@mui/icons-material'
+  DirectionsCar as DirectionsIcon,
+  Train as TrainIcon,
+  DirectionsBus as BusIcon,
+  AccessTime as TimeIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  LocationOn as LocationIcon
+} from '@mui/icons-material';
+import { THEME, BUSINESS_INFO } from '@/lib/constants';
+
+const transportOptions = [
+  {
+    mode: 'Car',
+    icon: DirectionsIcon,
+    directions: [
+      'From I-495, take Exit 31A for Georgia Ave South',
+      'Continue on Georgia Ave for 1.2 miles',
+      'Turn right onto Colesville Road',
+      'Our store will be on your left after 0.3 miles'
+    ]
+  },
+  {
+    mode: 'Metro',
+    icon: TrainIcon,
+    directions: [
+      'Take Red Line to Silver Spring station',
+      'Exit towards Colesville Road',
+      'Walk 2 blocks north',
+      'Our store will be on your right'
+    ]
+  },
+  {
+    mode: 'Bus',
+    icon: BusIcon,
+    directions: [
+      'Routes 70, 79, and S2 stop nearby',
+      'Get off at Georgia Ave & Colesville Rd',
+      'Walk 1 block east on Colesville Road',
+      'Our store will be on your left'
+    ]
+  }
+];
 
 export default function VisitPage() {
-  const handleGetDirections = () => {
-    window.open('https://www.google.com/maps/place/Fafresh+Cultural+Fashion/@39.0719,-76.9393,17z', '_blank')
-  }
-
   return (
-    <Container maxWidth="lg" sx={{ py: 8 }}>
-      <Typography variant="h2" component="h1" gutterBottom align="center">
-        Visit Our Store
-      </Typography>
+    <Box sx={{ py: THEME.spacing.section, minHeight: '100vh', mt: 8 }}>
+      <Container maxWidth="lg">
+        <Typography
+          variant="h1"
+          sx={{
+            fontSize: { xs: '2rem', md: '2.5rem' },
+            fontFamily: THEME.typography.headingFamily,
+            fontWeight: 500,
+            mb: 3
+          }}
+        >
+          Visit Our Store
+        </Typography>
 
-      <Grid container spacing={4}>
-        {/* Store Information */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 4 }}>
-            <Typography variant="h5" gutterBottom>
-              Store Location
-            </Typography>
+        <Typography
+          variant="h5"
+          sx={{
+            color: 'text.secondary',
+            maxWidth: '800px',
+            mb: 6
+          }}
+        >
+          Experience Ethiopian fashion in person at our Silver Spring location
+        </Typography>
 
-            <List>
-              <ListItem>
-                <ListItemIcon>
-                  <LocationOn color="primary" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Address"
-                  secondary={
-                    <>
-                      Inside Global Foods
-                      <br />
-                      13814 Outlet Dr
-                      <br />
-                      Silver Spring, MD 20904
-                    </>
+        <Grid container spacing={6}>
+          {/* Store Information */}
+          <Grid item xs={12} md={4}>
+            <Stack spacing={4}>
+              {/* Hours */}
+              <Paper elevation={0} sx={{ p: 3 }}>
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                  <TimeIcon sx={{ color: THEME.colors.primary }} />
+                  <Typography variant="h6">Store Hours</Typography>
+                </Stack>
+                <Stack spacing={1}>
+                  <Typography>
+                    Weekdays: {BUSINESS_INFO.storeHours.weekdays}
+                  </Typography>
+                  <Typography>
+                    Saturday: {BUSINESS_INFO.storeHours.saturday}
+                  </Typography>
+                  <Typography>
+                    Sunday: {BUSINESS_INFO.storeHours.sunday}
+                  </Typography>
+                </Stack>
+              </Paper>
+
+              {/* Contact Info */}
+              <Paper elevation={0} sx={{ p: 3 }}>
+                <Stack spacing={3}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <PhoneIcon sx={{ color: THEME.colors.primary }} />
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="bold">Phone</Typography>
+                      <Typography>{BUSINESS_INFO.phone}</Typography>
+                    </Box>
+                  </Stack>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <EmailIcon sx={{ color: THEME.colors.primary }} />
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="bold">Email</Typography>
+                      <Typography>{BUSINESS_INFO.contactEmail}</Typography>
+                    </Box>
+                  </Stack>
+                  <Stack direction="row" spacing={2} alignItems="flex-start">
+                    <LocationIcon sx={{ color: THEME.colors.primary }} />
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="bold">Address</Typography>
+                      <Typography>
+                        123 Fashion Street<br />
+                        Silver Spring, MD 20910
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Stack>
+              </Paper>
+
+              {/* Get Directions Button */}
+              <Button
+                variant="contained"
+                fullWidth
+                size="large"
+                href={BUSINESS_INFO.googleMapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  bgcolor: THEME.colors.primary,
+                  color: 'white',
+                  py: 2,
+                  '&:hover': {
+                    bgcolor: THEME.colors.secondary
                   }
-                />
-              </ListItem>
+                }}
+              >
+                Get Directions
+              </Button>
+            </Stack>
+          </Grid>
 
-              <ListItem>
-                <ListItemIcon>
-                  <Phone color="primary" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Phone"
-                  secondary="(240) 704-9915"
-                />
-              </ListItem>
-
-              <ListItem>
-                <ListItemIcon>
-                  <AccessTime color="primary" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Store Hours"
-                  secondary={
-                    <>
-                      Monday - Wednesday: Closed
-                      <br />
-                      Thursday - Sunday: 10:00 AM - 7:00 PM
-                    </>
-                  }
-                />
-              </ListItem>
-            </List>
-
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<DirectionsCar />}
-              onClick={handleGetDirections}
-              sx={{ mt: 2 }}
-              fullWidth
+          {/* Map and Directions */}
+          <Grid item xs={12} md={8}>
+            {/* Map */}
+            <Paper
+              elevation={0}
+              sx={{
+                height: '400px',
+                mb: 4,
+                overflow: 'hidden'
+              }}
             >
-              Get Directions
-            </Button>
-          </Paper>
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d24934.19285055357!2d-77.03673668359375!3d38.99709!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89b7c6de5af6e45b%3A0xc2524522d4885d2a!2sSilver%20Spring%2C%20MD!5e0!3m2!1sen!2sus!4v1635959562000!5m2!1sen!2sus"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </Paper>
 
-          <Paper sx={{ p: 4, mt: 4 }}>
-            <Typography variant="h5" gutterBottom>
-              Visitor Information
+            {/* Transportation Options */}
+            <Typography
+              variant="h6"
+              sx={{
+                fontFamily: THEME.typography.headingFamily,
+                mb: 3
+              }}
+            >
+              Getting Here
             </Typography>
-
-            <List>
-              <ListItem>
-                <ListItemIcon>
-                  <LocalParking color="primary" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Parking"
-                  secondary="Free parking available in the Briggs Chaney Market Place lot"
-                />
-              </ListItem>
-
-              <ListItem>
-                <ListItemIcon>
-                  <ShoppingCart color="primary" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Shopping Experience"
-                  secondary="Browse our collection of traditional Ethiopian clothing, modern fusion designs, and accessories. Our staff is happy to assist with measurements and style selection."
-                />
-              </ListItem>
-            </List>
-          </Paper>
+            <Stack spacing={3}>
+              {transportOptions.map((option, index) => (
+                <Paper key={index} elevation={0} sx={{ p: 3 }}>
+                  <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                    <option.icon sx={{ color: THEME.colors.primary }} />
+                    <Typography variant="h6">{option.mode}</Typography>
+                  </Stack>
+                  <List dense>
+                    {option.directions.map((direction, idx) => (
+                      <ListItem key={idx}>
+                        <ListItemText primary={direction} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Paper>
+              ))}
+            </Stack>
+          </Grid>
         </Grid>
-
-        {/* Map */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ height: '600px', width: '100%' }}>
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3098.675186657116!2d-76.9393!3d39.0719!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89b7c0a8b8b8b8b9%3A0x1b8b8b8b8b8b8b8b!2sFafresh%20Cultural%20Fashion!5e0!3m2!1sen!2sus!4v1625000000000!5m2!1sen!2sus"
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          </Paper>
-        </Grid>
-      </Grid>
-    </Container>
-  )
+      </Container>
+    </Box>
+  );
 } 

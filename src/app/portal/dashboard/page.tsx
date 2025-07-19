@@ -1,121 +1,280 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
+import { useState, useEffect } from 'react';
+import {
+  Box,
+  Grid,
+  Paper,
+  Typography,
+  Stack,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  CircularProgress
+} from '@mui/material';
+import {
+  TrendingUp as TrendingUpIcon,
+  ShoppingBag as OrderIcon,
+  People as CustomerIcon,
+  AttachMoney as RevenueIcon
+} from '@mui/icons-material';
+import { THEME } from '@/lib/constants';
 
-interface Order {
-  id: string
-  customerName: string
-  status: string
-  createdAt: string
-  totalAmount: number
-}
+type OrderStatus = 'PENDING' | 'PROCESSING' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'CANCELLED';
+
+type Order = {
+  id: string;
+  customer: {
+    firstName: string;
+    lastName: string;
+  };
+  orderDate: string;
+  status: OrderStatus;
+  subtotal: number;
+};
+
+type DashboardStats = {
+  totalOrders: number;
+  totalCustomers: number;
+  totalRevenue: number;
+  recentOrders: Order[];
+};
+
+const statusColors: Record<OrderStatus, string> = {
+  PENDING: '#FFA726',
+  PROCESSING: '#29B6F6',
+  READY_FOR_PICKUP: '#66BB6A',
+  COMPLETED: '#4CAF50',
+  CANCELLED: '#EF5350'
+};
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(amount);
+};
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession()
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedStatus, setSelectedStatus] = useState<string>('all')
-
-  // For testing purposes, we'll return null instead of redirecting
-  if (typeof window === 'undefined' && status === 'unauthenticated') {
-    return null
-  }
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status === 'unauthenticated' && typeof window !== 'undefined') {
-      redirect('/portal/login')
-    }
-  }, [status])
-
-  useEffect(() => {
-    async function fetchOrders() {
+    const fetchDashboardStats = async () => {
       try {
-        const response = await fetch('/api/orders')
+        const response = await fetch('/api/dashboard/stats');
         if (!response.ok) {
-          throw new Error('Failed to fetch orders')
+          throw new Error('Failed to fetch dashboard statistics');
         }
-        const data = await response.json()
-        setOrders(data.orders)
-        setError(null)
+        const data = await response.json();
+        setStats(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch orders')
+        setError('Failed to load dashboard data');
+        console.error('Dashboard error:', err);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchOrders()
-  }, [])
-
-  const handleUpdateStatus = async (orderId: string, newStatus: string) => {
-    try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to update order status')
-      }
-
-      setOrders(orders.map(order =>
-        order.id === orderId ? { ...order, status: newStatus } : order
-      ))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update order status')
-    }
-  }
+    fetchDashboardStats();
+  }, []);
 
   if (loading) {
-    return <div>Loading orders...</div>
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '400px'
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
 
-  if (error) {
-    return <div>Error loading orders: {error}</div>
+  if (error || !stats) {
+    return (
+      <Typography color="error" align="center">
+        {error || 'Failed to load dashboard'}
+      </Typography>
+    );
   }
-
-  const filteredOrders = selectedStatus === 'all'
-    ? orders
-    : orders.filter(order => order.status === selectedStatus)
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Orders Dashboard</h1>
-      <div className="mb-4">
-        <label htmlFor="statusFilter" className="mr-2">Filter by status:</label>
-        <select
-          id="statusFilter"
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value)}
-          className="border rounded p-1"
-        >
-          <option value="all">All</option>
-          <option value="pending">Pending</option>
-          <option value="processing">Processing</option>
-          <option value="completed">Completed</option>
-        </select>
-      </div>
-      <div className="grid gap-4">
-        {filteredOrders.map((order) => (
-          <div key={order.id} className="border p-4 rounded-lg">
-            <h2 className="font-semibold">{order.customerName}</h2>
-            <p className="text-gray-600">Status: {order.status}</p>
-            <p className="text-gray-600">Total: ${order.totalAmount}</p>
-            {order.status === 'pending' && (
-              <button
-                onClick={() => handleUpdateStatus(order.id, 'processing')}
-                className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+    <Box>
+      <Typography
+        variant="h4"
+        sx={{
+          mb: 4,
+          fontFamily: THEME.typography.headingFamily,
+          fontWeight: 500
+        }}
+      >
+        Dashboard
+      </Typography>
+
+      {/* Stats Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {[
+          {
+            title: 'Total Orders',
+            value: stats.totalOrders,
+            icon: OrderIcon,
+            color: THEME.colors.primary
+          },
+          {
+            title: 'Total Customers',
+            value: stats.totalCustomers,
+            icon: CustomerIcon,
+            color: '#4CAF50'
+          },
+          {
+            title: 'Total Revenue',
+            value: formatCurrency(stats.totalRevenue),
+            icon: RevenueIcon,
+            color: '#F9A825'
+          },
+          {
+            title: 'Growth',
+            value: '+12.5%',
+            icon: TrendingUpIcon,
+            color: '#2196F3'
+          }
+        ].map((stat, index) => (
+          <Grid item xs={12} sm={6} md={3} key={index}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                height: '100%',
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)'
+                }
+              }}
+            >
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ mb: 2 }}
               >
-                Update Status
-              </button>
-            )}
-          </div>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontFamily: THEME.typography.headingFamily
+                  }}
+                >
+                  {stat.title}
+                </Typography>
+                <stat.icon
+                  sx={{
+                    fontSize: 40,
+                    color: stat.color,
+                    opacity: 0.8
+                  }}
+                />
+              </Stack>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 500,
+                  color: stat.color
+                }}
+              >
+                {stat.value}
+              </Typography>
+            </Paper>
+          </Grid>
         ))}
-      </div>
-    </div>
-  )
+      </Grid>
+
+      {/* Recent Orders */}
+      <Paper elevation={0} sx={{ p: 3 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ mb: 3 }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              fontFamily: THEME.typography.headingFamily
+            }}
+          >
+            Recent Orders
+          </Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => window.location.href = '/portal/orders'}
+            sx={{
+              borderColor: THEME.colors.primary,
+              color: THEME.colors.primary,
+              '&:hover': {
+                borderColor: THEME.colors.secondary,
+                color: THEME.colors.secondary
+              }
+            }}
+          >
+            View All
+          </Button>
+        </Stack>
+
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Order ID</TableCell>
+                <TableCell>Customer</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Amount</TableCell>
+                <TableCell>Status</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {stats.recentOrders.map((order) => (
+                <TableRow key={order.id} hover>
+                  <TableCell>{order.id}</TableCell>
+                  <TableCell>
+                    {order.customer.firstName} {order.customer.lastName}
+                  </TableCell>
+                  <TableCell>{formatDate(order.orderDate)}</TableCell>
+                  <TableCell>{formatCurrency(order.subtotal)}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={order.status.replace('_', ' ')}
+                      size="small"
+                      sx={{
+                        bgcolor: `${statusColors[order.status]}15`,
+                        color: statusColors[order.status],
+                        fontWeight: 500
+                      }}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+    </Box>
+  );
 } 
