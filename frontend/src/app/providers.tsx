@@ -2,17 +2,16 @@
 
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { CartProvider } from '@/lib/CartContext';
 import theme from '@/lib/theme';
 
-export default function Providers({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      {children}
+      <CartProvider>
+        {children}
+      </CartProvider>
     </ThemeProvider>
   );
 } 

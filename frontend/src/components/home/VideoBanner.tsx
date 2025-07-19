@@ -1,41 +1,23 @@
 'use client';
 
-import ReactPlayer from 'react-player';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+// Import the video component with no SSR
+const VideoBackground = dynamic(() => import('./VideoBackground'), {
+  ssr: false
+});
 
 export default function VideoBanner() {
   const router = useRouter();
 
   return (
-    <div className="relative w-full h-screen overflow-hidden">
-      <ReactPlayer
-        url="/images/BANNERFAFRESH.mp4"
-        playing
-        loop
-        muted
-        width="100%"
-        height="100%"
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          objectFit: 'cover',
-        }}
-        config={{
-          file: {
-            attributes: {
-              style: {
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }
-            }
-          }
-        }}
-      />
+    <div className="relative w-full h-screen overflow-hidden bg-black">
+      <VideoBackground />
+      
+      {/* Content Overlay */}
       <div className="absolute inset-0 bg-black bg-opacity-40 flex flex-col items-center justify-center">
-        <div className="text-center text-white space-y-6">
+        <div className="text-center text-white space-y-6 px-4">
           <h1 className="text-5xl md:text-7xl font-bold mb-4 font-heading">
             FAFRESH FASHION
           </h1>

@@ -2,6 +2,12 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { Playfair_Display } from 'next/font/google';
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export default function RoyalCollection() {
   return (
@@ -13,14 +19,14 @@ export default function RoyalCollection() {
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4">
-            The Royal{' '}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#078930] via-[#FDEF42] to-[#EF3340]">
-              Collection
+          <h2 className={`${playfair.className} text-5xl md:text-6xl font-bold mb-6`}>
+            Ethiopian Heritage{' '}
+            <span className="text-[#078930]">
+              Meets Modern Luxury
             </span>
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Inspired by Ethiopian royalty, crafted for modern elegance
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            Our Royal Collection combines traditional Ethiopian craftsmanship with contemporary design elements. Each piece tells a story of heritage while embracing modern aesthetics.
           </p>
         </div>
 
@@ -38,12 +44,7 @@ export default function RoyalCollection() {
           </div>
 
           {/* Content */}
-          <div className="space-y-8">
-            <h3 className="text-3xl font-bold">Ethiopian Heritage Meets Modern Luxury</h3>
-            <p className="text-lg text-gray-600">
-              Our Royal Collection combines traditional Ethiopian craftsmanship with contemporary design elements. Each piece tells a story of heritage while embracing modern aesthetics.
-            </p>
-            
+          <div className="space-y-8">            
             <div className="grid grid-cols-2 gap-6">
               <div className="relative aspect-square rounded-xl overflow-hidden shadow-lg">
                 <Image

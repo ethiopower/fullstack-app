@@ -1,51 +1,103 @@
+import { useState } from 'react';
 import {
   Box,
-  Button,
   Container,
   Grid,
+  Typography,
+  TextField,
   IconButton,
-  InputAdornment,
   Link,
   Stack,
-  TextField,
-  Typography,
+  InputAdornment,
+  Alert,
+  Snackbar,
 } from '@mui/material';
-import InstagramIcon from '@mui/icons-material/Instagram';
-import YouTubeIcon from '@mui/icons-material/YouTube';
-import TikTokIcon from '@mui/icons-material/MusicNote'; // Using MusicNote as TikTok icon
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import {
+  Instagram as InstagramIcon,
+  YouTube as YouTubeIcon,
+  MusicNote as TikTokIcon,
+  ArrowForward as ArrowForwardIcon,
+} from '@mui/icons-material';
 import { colors } from '@/lib/theme';
 
-const quickLinks = [
-  { title: 'FAQs', href: '/faqs' },
-  { title: 'About Us', href: '/about' },
-  { title: 'Terms', href: '/terms' },
-  { title: 'Shipping', href: '/shipping' },
-  { title: 'Returns', href: '/returns' },
-];
+const INSTAGRAM_URL = 'https://www.instagram.com/fafresh.cultural.fashion/';
 
 const socialLinks = [
   {
-    icon: <InstagramIcon />,
-    href: 'https://instagram.com/fafresh',
     label: 'Instagram',
+    href: INSTAGRAM_URL,
+    icon: <InstagramIcon />,
   },
   {
-    icon: <TikTokIcon />,
-    href: 'https://tiktok.com/@fafresh',
-    label: 'TikTok',
-  },
-  {
-    icon: <YouTubeIcon />,
-    href: 'https://youtube.com/@fafresh',
     label: 'YouTube',
+    href: 'https://www.youtube.com/@fafreshfashion505',
+    icon: <YouTubeIcon />,
+  },
+  {
+    label: 'TikTok',
+    href: 'https://www.tiktok.com/@fafresh.cultural.fashion',
+    icon: <TikTokIcon />,
   },
 ];
 
+const quickLinks = [
+  { title: 'About Us', href: '/about' },
+  { title: 'Shop', href: '/shop' },
+  { title: 'Customize', href: '/customize' },
+  { title: 'Contact', href: '/contact' },
+  { title: 'Visit Store', href: '/visit' },
+];
+
 export default function Footer() {
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error',
+  });
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle newsletter signup
+    
+    if (!email) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to subscribe');
+      }
+
+      setSnackbar({
+        open: true,
+        message: 'Thank you for subscribing!',
+        severity: 'success',
+      });
+      setEmail('');
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error instanceof Error ? error.message : 'Failed to subscribe',
+        severity: 'error',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
@@ -126,9 +178,14 @@ export default function Footer() {
             >
               <TextField
                 placeholder="Enter email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 variant="outlined"
                 size="small"
                 fullWidth
+                required
+                disabled={isSubmitting}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     color: colors.white,
@@ -152,6 +209,7 @@ export default function Footer() {
                       <IconButton
                         type="submit"
                         edge="end"
+                        disabled={isSubmitting}
                         sx={{
                           color: colors.yellow,
                           '&:hover': {
@@ -173,11 +231,27 @@ export default function Footer() {
         <Typography
           variant="body2"
           align="center"
-          sx={{ mt: 4, color: 'rgba(255, 255, 255, 0.7)' }}
+          sx={{ mt: 4, opacity: 0.7 }}
         >
           © {new Date().getFullYear()} Fafresh Fashion. All rights reserved.
         </Typography>
       </Container>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 } 

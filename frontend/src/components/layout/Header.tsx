@@ -1,13 +1,38 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import {
+  AppBar,
+  Box,
+  Container,
+  IconButton,
+  Stack,
+  Toolbar,
+  Typography,
+  Button,
+  useMediaQuery,
+  useTheme,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  Badge
+} from '@mui/material';
+import { Menu as MenuIcon, ShoppingCart, Instagram, YouTube, WhatsApp } from '@mui/icons-material';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image';
+import { BUSINESS_INFO, THEME } from '@/lib/constants';
 
-export default function Header() {
-  const [isScrolled, setIsScrolled] = useState(false);
+const INSTAGRAM_URL = 'https://www.instagram.com/fafresh.cultural.fashion/';
+
+const Header = () => {
   const pathname = usePathname();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const isHomePage = pathname === '/';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -18,70 +43,203 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const isActive = (path: string) => pathname === path;
+  const menuItems = [
+    { label: 'Home', path: '/' },
+    { 
+      label: 'Customize', 
+      path: '/customize',
+      highlight: true 
+    },
+    { label: 'Shop', path: '/shop' },
+    { label: 'Contact', path: '/contact' }
+  ];
+
+  const SocialLinks = () => (
+    <Stack direction="row" spacing={1}>
+      <IconButton
+        component="a"
+        href={INSTAGRAM_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        size="small"
+        sx={{ color: 'white' }}
+      >
+        <Instagram />
+      </IconButton>
+      <IconButton
+        component="a"
+        href={BUSINESS_INFO.youtubeUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        size="small"
+        sx={{ color: 'white' }}
+      >
+        <YouTube />
+      </IconButton>
+      <IconButton
+        component="a"
+        href={`https://wa.me/${BUSINESS_INFO.phone.replace(/[^0-9]/g, '')}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        size="small"
+        sx={{
+          color: '#25D366',
+          '&:hover': { color: '#128C7E' }
+        }}
+      >
+        <WhatsApp />
+      </IconButton>
+    </Stack>
+  );
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-      isScrolled ? 'bg-slate-900/95 backdrop-blur-sm shadow-lg' : 'bg-slate-900/30 backdrop-blur-[2px]'
-    }`}>
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-24">
+    <AppBar 
+      position="fixed" 
+      sx={{ 
+        bgcolor: isHomePage && !isScrolled ? 'transparent' : 'rgba(33, 33, 33, 0.95)',
+        boxShadow: isHomePage && !isScrolled ? 'none' : 1,
+        backdropFilter: isHomePage && !isScrolled ? 'none' : 'blur(10px)',
+        transition: 'all 0.3s ease'
+      }}
+    >
+      <Container maxWidth="lg">
+        <Toolbar disableGutters>
           {/* Logo */}
-          <Link 
-            href="/" 
-            className="flex items-center space-x-3 group"
-          >
-            <div className="relative w-12 h-12 invert brightness-0">
+          <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ width: 120, height: 50, position: 'relative' }}>
               <Image
                 src="/images/fafresh-logo.png"
-                alt="Fafresh Fashion Logo"
+                alt={BUSINESS_INFO.brandName}
                 fill
-                className="object-contain"
+                style={{ objectFit: 'contain' }}
+                priority
               />
-            </div>
-            <span className="text-white text-2xl font-medium tracking-[0.2em] group-hover:opacity-80 transition-opacity">
-              FAFRESH
-            </span>
+            </Box>
           </Link>
 
-          {/* Navigation Links */}
-          <div className="flex space-x-12">
-            <Link 
-              href="/shop" 
-              className={`text-white/90 text-sm font-medium tracking-[0.15em] hover:text-white transition-all relative
-                ${isActive('/shop') ? 'text-white' : ''}`}
-            >
-              SHOP
-              {isActive('/shop') && (
-                <div className="absolute -bottom-1 left-0 right-0 h-px bg-white/50" />
-              )}
-            </Link>
-            <Link 
-              href="/contact" 
-              className={`text-white/90 text-sm font-medium tracking-[0.15em] hover:text-white transition-all relative
-                ${isActive('/contact') ? 'text-white' : ''}`}
-            >
-              CONTACT US
-              {isActive('/contact') && (
-                <div className="absolute -bottom-1 left-0 right-0 h-px bg-white/50" />
-              )}
-            </Link>
-            <Link 
-              href="/customize" 
-              className={`text-white/90 text-sm font-medium tracking-[0.15em] hover:text-white transition-all relative
-                ${isActive('/customize') ? 'text-white' : ''}`}
-            >
-              CUSTOMIZE
-              {isActive('/customize') && (
-                <div className="absolute -bottom-1 left-0 right-0 h-px bg-white/50" />
-              )}
-            </Link>
-          </div>
-        </div>
-      </nav>
-      
-      {/* Ethiopian flag colors bar */}
-      <div className="h-0.5 w-full bg-gradient-to-r from-[#078930] via-slate-200 to-[#EF3340] opacity-60" />
-    </header>
+          {/* Desktop Menu */}
+          {!isMobile && (
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+              {menuItems.map((item) => (
+                <Button
+                  key={item.path}
+                  component={Link}
+                  href={item.path}
+                  sx={{
+                    color: 'white',
+                    position: 'relative',
+                    '&::after': item.highlight ? {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '2px',
+                      bgcolor: THEME.colors.accent,
+                      transform: pathname === item.path ? 'scaleX(1)' : 'scaleX(0)',
+                      transition: 'transform 0.3s ease'
+                    } : {},
+                    '&:hover::after': item.highlight ? {
+                      transform: 'scaleX(1)'
+                    } : {},
+                    ...(pathname === item.path && {
+                      color: THEME.colors.accent,
+                      fontWeight: 'bold'
+                    })
+                  }}
+                >
+                  {item.label}
+                </Button>
+              ))}
+              <Box sx={{ mx: 2 }}>
+                <SocialLinks />
+              </Box>
+              <IconButton
+                component={Link}
+                href="/cart"
+                sx={{
+                  color: 'white',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  '&:hover': {
+                    border: '1px solid rgba(255,255,255,0.8)',
+                    bgcolor: 'rgba(255,255,255,0.1)'
+                  }
+                }}
+              >
+                <Badge badgeContent={0} color="error">
+                  <ShoppingCart />
+                </Badge>
+              </IconButton>
+            </Stack>
+          )}
+
+          {/* Mobile Menu Button */}
+          {isMobile && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
+              <SocialLinks />
+              <IconButton
+                component={Link}
+                href="/cart"
+                sx={{ color: 'white', mr: 1 }}
+              >
+                <Badge badgeContent={0} color="error">
+                  <ShoppingCart />
+                </Badge>
+              </IconButton>
+              <IconButton
+                edge="end"
+                onClick={() => setMobileMenuOpen(true)}
+                sx={{ color: 'white' }}
+              >
+                <MenuIcon />
+              </IconButton>
+            </Box>
+          )}
+        </Toolbar>
+      </Container>
+
+      {/* Mobile Menu Drawer */}
+      <Drawer
+        anchor="right"
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      >
+        <Box sx={{ width: 250, pt: 2, bgcolor: '#212121', height: '100%' }}>
+          <List>
+            {menuItems.map((item) => (
+              <ListItem
+                key={item.path}
+                component={Link}
+                href={item.path}
+                onClick={() => setMobileMenuOpen(false)}
+                sx={{
+                  color: 'white',
+                  ...(pathname === item.path && {
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: '3px',
+                      bgcolor: THEME.colors.accent
+                    }
+                  }),
+                  ...(item.highlight && {
+                    color: THEME.colors.accent,
+                    fontWeight: 'bold'
+                  })
+                }}
+              >
+                <ListItemText primary={item.label} />
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
+    </AppBar>
   );
-} 
+};
+
+export default Header; 

@@ -1,90 +1,206 @@
 'use client';
 
+import { Box, Container, Typography, Button, Grid } from '@mui/material';
 import Image from 'next/image';
 import Link from 'next/link';
+import { BUSINESS_INFO } from '@/lib/constants';
+import { Playfair_Display } from 'next/font/google';
 
-const customizationSteps = [
-  {
-    title: 'Choose Your Style',
-    description: 'Select from our curated collection of Ethiopian-inspired designs',
-    image: '/images/instagram/imgi_10_278191962_163408482736547_5896909086523474106_n.webp'
-  },
-  {
-    title: 'Pick Your Fabric',
-    description: 'Browse through our premium Ethiopian cotton and traditional textiles',
-    image: '/images/instagram/imgi_6_278048893_1088525645049426_4195131893231909479_n.webp'
-  },
-  {
-    title: 'Perfect Your Fit',
-    description: 'Get your perfect measurements for a tailored experience',
-    image: '/images/instagram/imgi_4_278292359_1873496682850196_1929999068388655626_n.webp'
-  }
-];
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  display: 'swap',
+});
 
-export default function CustomizeSection() {
+const CustomizeSection = () => {
   return (
-    <section className="relative py-24 overflow-hidden">
-      {/* Ethiopian-inspired background pattern */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-[linear-gradient(45deg,#078930_25%,transparent_25%),linear-gradient(-45deg,#FDEF42_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#EF3340_75%),linear-gradient(-45deg,transparent_75%,#078930_75%)]" style={{ backgroundSize: '20px 20px', opacity: 0.05 }} />
-      </div>
+    <Box
+      component="section"
+      sx={{
+        position: 'relative',
+        py: { xs: 12, md: 16 },
+        overflow: 'hidden',
+        bgcolor: '#FCFCFC',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '1px',
+          background: 'linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent)'
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '1px',
+          background: 'linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent)'
+        }
+      }}
+    >
+      {/* Background Pattern */}
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.03,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23078930' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        }}
+      />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4">
-            Customize Your{' '}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#078930] via-[#FDEF42] to-[#EF3340]">
-              Ethiopian Style
-            </span>
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Create your perfect piece with our easy customization process
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {customizationSteps.map((step, index) => (
-            <div
-              key={index}
-              className="relative group rounded-2xl overflow-hidden shadow-lg bg-white"
+      <Container maxWidth="lg">
+        <Grid container spacing={8} alignItems="center">
+          {/* Left side - Image */}
+          <Grid item xs={12} md={6}>
+            <Box
+              sx={{
+                position: 'relative',
+                height: { xs: '500px', md: '700px' },
+                borderRadius: '20px',
+                overflow: 'hidden',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)',
+                transform: 'perspective(1000px) rotateY(-5deg)',
+                transition: 'transform 0.5s ease',
+                '&:hover': {
+                  transform: 'perspective(1000px) rotateY(0deg)',
+                }
+              }}
             >
-              <div className="relative aspect-[3/4] overflow-hidden">
-                <Image
-                  src={step.image}
-                  alt={step.title}
-                  fill
-                  className="object-cover transform group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
-                
-                {/* Ethiopian colors accent */}
-                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-[#078930] via-[#FDEF42] to-[#EF3340]" />
-              </div>
+              <Image
+                src="/images/instagram/imgi_1_278193034_380033810648589_636440153269846173_n.jpg"
+                alt="Ethiopian Traditional Dress"
+                fill
+                style={{ objectFit: 'cover' }}
+              />
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.3), transparent)',
+                }}
+              />
+            </Box>
+          </Grid>
 
-              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
-                <p className="text-sm opacity-90">{step.description}</p>
-              </div>
+          {/* Right side - Content */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{ maxWidth: 520 }}>
+              <Typography
+                component="h2"
+                className={playfair.className}
+                sx={{
+                  fontSize: { xs: '3.5rem', md: '4.5rem' },
+                  lineHeight: 1.1,
+                  mb: 4,
+                  fontWeight: 600,
+                  background: 'linear-gradient(135deg, #078930 0%, #2C3E50 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                Create Your Perfect Look
+              </Typography>
 
-              <div className="absolute top-4 right-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#FDEF42] text-black">
-                  Step {index + 1}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+              <Typography
+                variant="h5"
+                sx={{
+                  color: '#078930',
+                  fontWeight: 500,
+                  mb: 6,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.2em',
+                }}
+              >
+                TRADITIONAL. TRENDY. TAILORED.
+              </Typography>
 
-        <div className="text-center mt-12">
-          <Link
-            href="/customize"
-            className="relative inline-flex items-center px-8 py-4 border-2 border-[#078930] text-lg font-medium rounded-full text-white overflow-hidden group"
-          >
-            <span className="relative z-10">Start Customizing</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#078930] via-[#FDEF42] to-[#EF3340] group-hover:animate-gradient-x"></div>
-          </Link>
-        </div>
-      </div>
-    </section>
+              {/* Marketing Points */}
+              <Box sx={{ mb: 8 }}>
+                {[
+                  {
+                    title: 'Easy Customization',
+                    description: 'Choose your style, fabric, and get your perfect fit'
+                  },
+                  {
+                    title: '3 WEEK FREE DELIVERY TO STORE',
+                    description: 'Quick turnaround time for your custom pieces'
+                  },
+                  {
+                    title: 'OVER 1000 DESIGNS TO CHOOSE FROM',
+                    description: 'Extensive collection of traditional and modern designs'
+                  }
+                ].map((point, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      mb: 4,
+                      p: 3,
+                      borderRadius: 2,
+                      background: 'rgba(255,255,255,0.8)',
+                      backdropFilter: 'blur(10px)',
+                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)',
+                      transition: 'transform 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateX(10px)',
+                      }
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      gutterBottom
+                      sx={{
+                        fontWeight: 600,
+                        color: '#2C3E50',
+                      }}
+                    >
+                      {point.title}
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        color: 'text.secondary',
+                        fontSize: '1.1rem',
+                      }}
+                    >
+                      {point.description}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+
+              <Button
+                component={Link}
+                href="/customize"
+                variant="contained"
+                size="large"
+                sx={{
+                  bgcolor: '#078930',
+                  color: 'white',
+                  px: 6,
+                  py: 2.5,
+                  fontSize: '1.2rem',
+                  borderRadius: '50px',
+                  boxShadow: '0 10px 20px rgba(7,137,48,0.2)',
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  '&:hover': {
+                    bgcolor: '#067825',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 15px 25px rgba(7,137,48,0.3)',
+                  },
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                Start Customizing
+              </Button>
+            </Box>
+          </Grid>
+        </Grid>
+      </Container>
+    </Box>
   );
-} 
+};
+
+export default CustomizeSection; 

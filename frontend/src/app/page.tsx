@@ -5,13 +5,15 @@ import CustomizeSection from '@/components/home/CustomizeSection';
 import RoyalCollection from '@/components/home/RoyalCollection';
 import ShopCollection from '@/components/home/ShopCollection';
 import InstagramGallery from '@/components/home/InstagramGallery';
+import YouTubeEmbed from '@/components/home/YouTubeEmbed';
 
 export default function HomePage() {
   return (
     <main>
       <VideoBanner />
-      <RoyalCollection />
       <CustomizeSection />
+      <YouTubeEmbed />
+      <RoyalCollection />
       <ShopCollection />
       <InstagramGallery />
     </main>

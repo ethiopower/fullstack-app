@@ -1,6 +1,8 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { Box, Container, Typography, Stepper, Step, StepLabel } from '@mui/material';
+import { THEME } from '@/lib/constants';
 
 const steps = [
   { id: 1, name: 'Demographics', path: '/customize/step1' },
@@ -19,53 +21,35 @@ export default function CustomizeLayout({
   const currentStep = steps.findIndex(step => step.path === pathname) + 1;
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <Box sx={{ py: THEME.spacing.section, minHeight: '100vh', mt: 8, bgcolor: 'background.default' }}>
+      <Container maxWidth="lg">
+        <Typography
+          variant="h1"
+          sx={{
+            fontSize: { xs: '2rem', md: '2.5rem' },
+            fontFamily: THEME.typography.headingFamily,
+            fontWeight: 500,
+            mb: 6,
+            textAlign: 'center'
+          }}
+        >
+          Customize Your Design
+        </Typography>
+
         {/* Progress Steps */}
-        <nav aria-label="Progress" className="mb-8">
-          <ol role="list" className="flex items-center">
-            {steps.map((step, stepIdx) => (
-              <li
-                key={step.name}
-                className={`relative ${stepIdx !== steps.length - 1 ? 'pr-8 sm:pr-20' : ''}`}
-              >
-                <div className="flex items-center">
-                  <div
-                    className={`relative flex h-8 w-8 items-center justify-center rounded-full border-2 ${
-                      step.id <= currentStep
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-300 bg-white text-slate-500'
-                    }`}
-                  >
-                    <span className="text-sm font-medium">{step.id}</span>
-                  </div>
-                  {stepIdx !== steps.length - 1 && (
-                    <div
-                      className={`absolute top-4 h-0.5 w-full ${
-                        step.id < currentStep ? 'bg-slate-900' : 'bg-slate-200'
-                      }`}
-                    />
-                  )}
-                </div>
-                <div className="mt-2">
-                  <span
-                    className={`text-sm font-medium ${
-                      step.id <= currentStep ? 'text-slate-900' : 'text-slate-500'
-                    }`}
-                  >
-                    {step.name}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </nav>
+        <Stepper activeStep={currentStep - 1} alternativeLabel sx={{ mb: 6 }}>
+          {steps.map((step) => (
+            <Step key={step.name}>
+              <StepLabel>{step.name}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
 
         {/* Content */}
-        <div className="bg-white shadow-sm rounded-lg p-6 mb-8">
+        <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: 4, mb: 4 }}>
           {children}
-        </div>
-      </div>
-    </div>
+        </Box>
+      </Container>
+    </Box>
   );
 } 

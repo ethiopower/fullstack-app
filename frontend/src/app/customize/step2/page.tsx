@@ -7,7 +7,7 @@ import Image from 'next/image';
 type Design = {
   id: string;
   name: string;
-  category: 'men' | 'women' | 'boys' | 'girls';
+  category: 'men' | 'women';
   imageUrl: string;
   price: number;
   description: string;
@@ -36,53 +36,32 @@ const mockDesigns: Design[] = [
 
 export default function Step2() {
   const router = useRouter();
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [selectedDesigns, setSelectedDesigns] = useState<Record<string, Design[]>>({});
-  const [activeCategory, setActiveCategory] = useState<Design['category']>('men');
+  const [selectedGender, setSelectedGender] = useState<Design['category'] | null>(null);
+  const [selectedDesign, setSelectedDesign] = useState<Design | null>(null);
 
   useEffect(() => {
-    // Load quantities from session storage
-    const storedQuantities = sessionStorage.getItem('orderQuantities');
-    if (storedQuantities) {
-      setQuantities(JSON.parse(storedQuantities));
+    // Load gender from session storage
+    const storedGender = sessionStorage.getItem('selectedGender');
+    if (storedGender) {
+      setSelectedGender(storedGender as Design['category']);
     } else {
       router.push('/customize/step1');
     }
 
-    // Initialize selected designs
-    const storedDesigns = sessionStorage.getItem('selectedDesigns');
-    if (storedDesigns) {
-      setSelectedDesigns(JSON.parse(storedDesigns));
+    // Load selected design if exists
+    const storedDesign = sessionStorage.getItem('selectedDesign');
+    if (storedDesign) {
+      setSelectedDesign(JSON.parse(storedDesign));
     }
   }, [router]);
 
   const handleDesignSelect = (design: Design) => {
-    const currentSelected = selectedDesigns[design.category] || [];
-    const maxAllowed = quantities[design.category] || 0;
-
-    if (currentSelected.length < maxAllowed) {
-      setSelectedDesigns(prev => ({
-        ...prev,
-        [design.category]: [...(prev[design.category] || []), design],
-      }));
-    }
-  };
-
-  const handleDesignRemove = (design: Design, index: number) => {
-    setSelectedDesigns(prev => ({
-      ...prev,
-      [design.category]: prev[design.category].filter((_, i) => i !== index),
-    }));
+    setSelectedDesign(design);
   };
 
   const handleNext = () => {
-    // Check if all required designs are selected
-    const allSelected = Object.entries(quantities).every(
-      ([category, qty]) => (selectedDesigns[category] || []).length === qty
-    );
-
-    if (allSelected) {
-      sessionStorage.setItem('selectedDesigns', JSON.stringify(selectedDesigns));
+    if (selectedDesign) {
+      sessionStorage.setItem('selectedDesign', JSON.stringify(selectedDesign));
       router.push('/customize/step3');
     }
   };
@@ -91,36 +70,15 @@ export default function Step2() {
     router.push('/customize/step1');
   };
 
-  const filteredDesigns = mockDesigns.filter(design => design.category === activeCategory);
+  const filteredDesigns = mockDesigns.filter(design => design.category === selectedGender);
 
   return (
     <div>
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-medium text-slate-900 mb-2">Select Your Designs</h2>
+        <h2 className="text-2xl font-medium text-slate-900 mb-2">Select Your Design</h2>
         <p className="text-slate-600">
-          Choose designs for each category based on your selections
+          Choose a design that matches your style
         </p>
-      </div>
-
-      {/* Category Tabs */}
-      <div className="flex space-x-4 mb-8">
-        {Object.entries(quantities).map(([category, qty]) => (
-          qty > 0 && (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category as Design['category'])}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeCategory === category
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
-              {' '}
-              ({(selectedDesigns[category] || []).length}/{qty})
-            </button>
-          )
-        ))}
       </div>
 
       {/* Design Grid */}
@@ -128,7 +86,14 @@ export default function Step2() {
         {filteredDesigns.map((design) => (
           <div
             key={design.id}
-            className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+            className={`border rounded-lg overflow-hidden transition-all ${
+              selectedDesign?.id === design.id
+                ? 'ring-2 ring-slate-900 shadow-md'
+                : 'shadow-sm hover:shadow-md'
+            }`}
+            onClick={() => handleDesignSelect(design)}
+            role="button"
+            tabIndex={0}
           >
             <div className="relative h-64">
               <Image
@@ -142,51 +107,10 @@ export default function Step2() {
               <h3 className="text-lg font-medium text-slate-900">{design.name}</h3>
               <p className="text-slate-600 text-sm mt-1">{design.description}</p>
               <p className="text-slate-900 font-medium mt-2">${design.price.toFixed(2)}</p>
-              <button
-                onClick={() => handleDesignSelect(design)}
-                disabled={
-                  (selectedDesigns[design.category] || []).length >=
-                  (quantities[design.category] || 0)
-                }
-                className={`mt-4 w-full px-4 py-2 rounded-lg text-white font-medium transition-all ${
-                  (selectedDesigns[design.category] || []).length >=
-                  (quantities[design.category] || 0)
-                    ? 'bg-slate-400 cursor-not-allowed'
-                    : 'bg-slate-900 hover:bg-slate-800'
-                }`}
-              >
-                Select Design
-              </button>
             </div>
           </div>
         ))}
       </div>
-
-      {/* Selected Designs */}
-      {selectedDesigns[activeCategory]?.length > 0 && (
-        <div className="mb-8">
-          <h3 className="text-lg font-medium text-slate-900 mb-4">Selected Designs</h3>
-          <div className="space-y-4">
-            {selectedDesigns[activeCategory].map((design, index) => (
-              <div
-                key={`${design.id}-${index}`}
-                className="flex items-center justify-between bg-slate-50 p-4 rounded-lg"
-              >
-                <div>
-                  <p className="font-medium text-slate-900">{design.name}</p>
-                  <p className="text-slate-600 text-sm">${design.price.toFixed(2)}</p>
-                </div>
-                <button
-                  onClick={() => handleDesignRemove(design, index)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Navigation */}
       <div className="flex justify-between">
@@ -198,13 +122,9 @@ export default function Step2() {
         </button>
         <button
           onClick={handleNext}
-          disabled={!Object.entries(quantities).every(
-            ([category, qty]) => (selectedDesigns[category] || []).length === qty
-          )}
+          disabled={!selectedDesign}
           className={`px-6 py-2 rounded-lg text-white font-medium transition-all ${
-            Object.entries(quantities).every(
-              ([category, qty]) => (selectedDesigns[category] || []).length === qty
-            )
+            selectedDesign
               ? 'bg-slate-900 hover:bg-slate-800'
               : 'bg-slate-400 cursor-not-allowed'
           }`}

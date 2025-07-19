@@ -18,9 +18,10 @@ type Measurements = {
 type Design = {
   id: string;
   name: string;
-  category: string;
+  category: 'men' | 'women';
   imageUrl: string;
   price: number;
+  description: string;
 };
 
 const measurementLabels = {
@@ -36,25 +37,27 @@ const measurementLabels = {
 
 export default function Step3() {
   const router = useRouter();
-  const [selectedDesigns, setSelectedDesigns] = useState<Record<string, Design[]>>({});
-  const [measurements, setMeasurements] = useState<Record<string, Measurements[]>>({});
-  const [activeCategory, setActiveCategory] = useState('');
-  const [activeDesignIndex, setActiveDesignIndex] = useState(0);
+  const [selectedDesign, setSelectedDesign] = useState<Design | null>(null);
+  const [measurements, setMeasurements] = useState<Measurements>({
+    shoulder: 0,
+    chest: 0,
+    waist: 0,
+    hip: 0,
+    length: 0,
+    sleeve: 0,
+    neck: 0,
+  });
 
   useEffect(() => {
-    // Load selected designs from session storage
-    const storedDesigns = sessionStorage.getItem('selectedDesigns');
-    if (!storedDesigns) {
+    // Load selected design from session storage
+    const storedDesign = sessionStorage.getItem('selectedDesign');
+    if (!storedDesign) {
       router.push('/customize/step2');
       return;
     }
 
-    const designs = JSON.parse(storedDesigns);
-    setSelectedDesigns(designs);
-    
-    // Set initial active category
-    const firstCategory = Object.keys(designs).find(cat => designs[cat].length > 0) || '';
-    setActiveCategory(firstCategory);
+    const design = JSON.parse(storedDesign);
+    setSelectedDesign(design);
 
     // Load existing measurements if any
     const storedMeasurements = sessionStorage.getItem('measurements');
@@ -70,36 +73,14 @@ export default function Step3() {
     const numValue = parseFloat(value);
     if (isNaN(numValue)) return;
 
-    setMeasurements(prev => {
-      const categoryMeasurements = [...(prev[activeCategory] || [])];
-      categoryMeasurements[activeDesignIndex] = {
-        ...(categoryMeasurements[activeDesignIndex] || {
-          shoulder: 0,
-          chest: 0,
-          waist: 0,
-          hip: 0,
-          length: 0,
-          sleeve: 0,
-          neck: 0,
-        }),
-        [field]: numValue,
-      };
-      return { ...prev, [activeCategory]: categoryMeasurements };
-    });
+    setMeasurements(prev => ({
+      ...prev,
+      [field]: numValue,
+    }));
   };
 
   const validateMeasurements = () => {
-    for (const [category, designs] of Object.entries(selectedDesigns)) {
-      const categoryMeasurements = measurements[category] || [];
-      if (categoryMeasurements.length !== designs.length) return false;
-      
-      for (const measurement of categoryMeasurements) {
-        if (!measurement || Object.values(measurement).some(v => v <= 0)) {
-          return false;
-        }
-      }
-    }
-    return true;
+    return Object.values(measurements).every(value => value > 0);
   };
 
   const handleNext = () => {
@@ -113,103 +94,56 @@ export default function Step3() {
     router.push('/customize/step2');
   };
 
-  const currentDesign = selectedDesigns[activeCategory]?.[activeDesignIndex];
-  const currentMeasurements = measurements[activeCategory]?.[activeDesignIndex] || {
-    shoulder: 0,
-    chest: 0,
-    waist: 0,
-    hip: 0,
-    length: 0,
-    sleeve: 0,
-    neck: 0,
-  };
+  if (!selectedDesign) {
+    return null;
+  }
 
   return (
     <div>
       <div className="text-center mb-8">
         <h2 className="text-2xl font-medium text-slate-900 mb-2">Enter Measurements</h2>
         <p className="text-slate-600">
-          Please provide accurate measurements for each selected design
+          Please provide accurate measurements for your selected design
         </p>
       </div>
 
-      {/* Category and Design Selection */}
-      <div className="flex space-x-4 mb-8">
-        {Object.entries(selectedDesigns).map(([category, designs]) => (
-          designs.length > 0 && (
-            <button
-              key={category}
-              onClick={() => {
-                setActiveCategory(category);
-                setActiveDesignIndex(0);
-              }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeCategory === category
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
-            </button>
-          )
-        ))}
-      </div>
-
-      {currentDesign && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Design Info */}
-          <div>
-            <div className="relative h-96 rounded-lg overflow-hidden mb-4">
-              <Image
-                src={currentDesign.imageUrl}
-                alt={currentDesign.name}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <h3 className="text-lg font-medium text-slate-900">{currentDesign.name}</h3>
-            {selectedDesigns[activeCategory].length > 1 && (
-              <div className="flex space-x-2 mt-2">
-                {selectedDesigns[activeCategory].map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveDesignIndex(index)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      index === activeDesignIndex
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
-              </div>
-            )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Design Info */}
+        <div>
+          <div className="relative h-96 rounded-lg overflow-hidden mb-4">
+            <Image
+              src={selectedDesign.imageUrl}
+              alt={selectedDesign.name}
+              fill
+              className="object-cover"
+            />
           </div>
-
-          {/* Measurement Form */}
-          <div className="space-y-4">
-            {Object.entries(measurementLabels).map(([field, labels]) => (
-              (!field.includes('inseam') || activeCategory.includes('men') || activeCategory.includes('boys')) && (
-                <div key={field} className="space-y-2">
-                  <label className="block">
-                    <span className="text-slate-900 font-medium">{labels.en}</span>
-                    <span className="text-slate-600 ml-2">({labels.am})</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={currentMeasurements[field as keyof Measurements] || ''}
-                    onChange={(e) => handleMeasurementChange(field as keyof Measurements, e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-                    placeholder="Enter measurement in inches"
-                    step="0.1"
-                  />
-                </div>
-              )
-            ))}
-          </div>
+          <h3 className="text-lg font-medium text-slate-900">{selectedDesign.name}</h3>
+          <p className="text-slate-600 mt-2">{selectedDesign.description}</p>
         </div>
-      )}
+
+        {/* Measurement Form */}
+        <div className="space-y-4">
+          {Object.entries(measurementLabels).map(([field, labels]) => (
+            (!field.includes('inseam') || selectedDesign.category === 'men') && (
+              <div key={field} className="space-y-2">
+                <label className="block">
+                  <span className="text-slate-900 font-medium">{labels.en}</span>
+                  <span className="text-slate-600 ml-2">({labels.am})</span>
+                </label>
+                <input
+                  type="number"
+                  value={measurements[field as keyof Measurements] || ''}
+                  onChange={(e) => handleMeasurementChange(field as keyof Measurements, e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                  placeholder="Enter measurement in inches"
+                  step="0.1"
+                />
+              </div>
+            )
+          ))}
+        </div>
+      </div>
 
       {/* Navigation */}
       <div className="flex justify-between mt-8">

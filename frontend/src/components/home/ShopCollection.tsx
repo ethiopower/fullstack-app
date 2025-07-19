@@ -1,113 +1,143 @@
 'use client';
 
-import Image from 'next/image';
+import { Box, Button, Container, Grid, Typography, Card, CardMedia, CardContent, CardActions } from '@mui/material';
 import Link from 'next/link';
+import { THEME } from '@/lib/constants';
 
-interface CollectionItem {
-  id: string;
-  name: string;
-  description: string;
-  price: string;
-  imageUrl: string;
-}
-
-const collections: CollectionItem[] = [
+// Sample products - in a real app, this would come from an API or database
+const featuredProducts = [
   {
-    id: '1',
-    name: 'Traditional Habesha Dress',
-    description: 'Modern take on traditional Ethiopian dress',
-    price: '$199',
-    imageUrl: '/images/instagram/imgi_13_278392924_109404108407718_3275092387011595748_n.webp'
+    id: 1,
+    name: "Traditional Habesha Kemis",
+    price: 299.99,
+    description: "Hand-embroidered cotton dress with intricate Ethiopian patterns",
+    image: "/images/instagram/imgi_1_278193034_380033810648589_636440153269846173_n.jpg",
+    instagramUrl: "https://www.instagram.com/fafresh.cultural.fashion/"
   },
   {
-    id: '2',
-    name: 'Ethiopian Modern Suit',
-    description: 'Contemporary suit with Ethiopian details',
-    price: '$299',
-    imageUrl: '/images/instagram/imgi_18_285489417_338460055105426_9071859713693865775_n.webp'
+    id: 2,
+    name: "Modern Tilfi Dress",
+    price: 249.99,
+    description: "Contemporary take on traditional Ethiopian formal wear",
+    image: "/images/instagram/imgi_3_353591052_285357163930407_5308760856456849800_n.jpg",
+    instagramUrl: "https://www.instagram.com/fafresh.cultural.fashion/"
   },
   {
-    id: '3',
-    name: 'Fusion Collection',
-    description: 'Where tradition meets modern style',
-    price: '$249',
-    imageUrl: '/images/instagram/imgi_12_278236374_709188663444049_484472670772547167_n.webp'
+    id: 3,
+    name: "Ethiopian Wedding Dress",
+    price: 499.99,
+    description: "Luxurious wedding dress with traditional elements",
+    image: "/images/instagram/imgi_7_278407559_1005903230031551_1377516088203914242_n.webp",
+    instagramUrl: "https://www.instagram.com/fafresh.cultural.fashion/"
   }
 ];
 
-const ethiopianColors = {
-  green: '#078930',  // Ethiopian flag green
-  yellow: '#FDEF42', // Ethiopian flag yellow
-  red: '#EF3340',    // Ethiopian flag red
+const ShopCollection = () => {
+  return (
+    <Box component="section" sx={{ py: THEME.spacing.section, bgcolor: 'background.paper' }}>
+      <Container maxWidth="lg">
+        <Typography
+          variant="h2"
+          textAlign="center"
+          sx={{
+            mb: 6,
+            fontFamily: THEME.typography.headingFamily,
+            fontSize: { xs: '2rem', md: '2.5rem' }
+          }}
+        >
+          View All Collection
+        </Typography>
+
+        <Grid container spacing={4}>
+          {featuredProducts.map((product) => (
+            <Grid item xs={12} sm={6} md={4} key={product.id}>
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  transition: 'transform 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    '& .MuiCardMedia-root': {
+                      transform: 'scale(1.05)'
+                    }
+                  }
+                }}
+              >
+                <Box sx={{ position: 'relative', pt: '133%', overflow: 'hidden' }}>
+                  <CardMedia
+                    component="img"
+                    image={product.image}
+                    alt={product.name}
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      transition: 'transform 0.3s ease'
+                    }}
+                  />
+                </Box>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Typography variant="h6" gutterBottom>
+                    {product.name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {product.description}
+                  </Typography>
+                  <Typography variant="h6" color="primary" fontWeight="bold">
+                    ${product.price}
+                  </Typography>
+                </CardContent>
+                <CardActions sx={{ p: 2, pt: 0 }}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    component={Link}
+                    href={`/customize?product=${product.id}`}
+                    sx={{
+                      borderColor: THEME.colors.primary,
+                      color: THEME.colors.primary,
+                      '&:hover': {
+                        borderColor: THEME.colors.secondary,
+                        bgcolor: 'rgba(214, 28, 78, 0.1)'
+                      }
+                    }}
+                  >
+                    Customize
+                  </Button>
+                </CardActions>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        <Box sx={{ mt: 6, textAlign: 'center' }}>
+          <Button
+            variant="contained"
+            size="large"
+            component={Link}
+            href="/shop"
+            sx={{
+              bgcolor: THEME.colors.primary,
+              color: 'white',
+              px: 6,
+              py: 2,
+              fontSize: '1.1rem',
+              '&:hover': {
+                bgcolor: THEME.colors.secondary
+              }
+            }}
+          >
+            View All Products
+          </Button>
+        </Box>
+      </Container>
+    </Box>
+  );
 };
 
-export default function ShopCollection() {
-  return (
-    <section className="relative py-16">
-      {/* Ethiopian-inspired background pattern */}
-      <div className="absolute inset-0 opacity-10 bg-[linear-gradient(45deg,#078930_25%,transparent_25%),linear-gradient(-45deg,#FDEF42_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#EF3340_75%),linear-gradient(-45deg,transparent_75%,#078930_75%)]" style={{ backgroundSize: '20px 20px' }}></div>
-      
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#078930] via-[#FDEF42] to-[#EF3340]">
-            Ethiopian Collection
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Discover our unique pieces that blend Ethiopian heritage with contemporary fashion
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {collections.map((item) => (
-            <div 
-              key={item.id}
-              className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300"
-            >
-              <div className="relative h-96 w-full overflow-hidden">
-                <Image
-                  src={item.imageUrl}
-                  alt={item.name}
-                  fill
-                  className="object-cover transform group-hover:scale-105 transition-transform duration-500"
-                />
-                {/* Ethiopian colors gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="absolute inset-0 bg-gradient-to-br from-[#078930]/20 via-[#FDEF42]/20 to-[#EF3340]/20" />
-              </div>
-
-              <div className="absolute bottom-0 left-0 right-0 p-6 text-white backdrop-blur-sm bg-black/30">
-                <h3 className="text-xl font-semibold mb-2">{item.name}</h3>
-                <p className="text-sm opacity-90 mb-3">{item.description}</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold">{item.price}</span>
-                  <Link 
-                    href={`/shop/${item.id}`}
-                    className="relative overflow-hidden group-hover:scale-105 transition-transform px-4 py-2 rounded-full text-white border-2 border-[#FDEF42] hover:bg-[#FDEF42] hover:text-black"
-                  >
-                    View Details
-                  </Link>
-                </div>
-              </div>
-
-              <div className="absolute top-4 right-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#FDEF42] text-black">
-                  New Arrival
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="text-center mt-12">
-          <Link
-            href="/shop"
-            className="relative inline-flex items-center px-8 py-4 border-2 border-[#078930] text-lg font-medium rounded-full text-white overflow-hidden group"
-          >
-            <span className="relative z-10">View All Collections</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#078930] via-[#FDEF42] to-[#EF3340] group-hover:animate-gradient-x"></div>
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-} 
+export default ShopCollection; 
