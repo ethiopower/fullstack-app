@@ -130,8 +130,8 @@ export default function VisitPage() {
                     <Box>
                       <Typography variant="subtitle1" fontWeight="bold">Address</Typography>
                       <Typography>
-                        123 Fashion Street<br />
-                        Silver Spring, MD 20910
+                        {BUSINESS_INFO.address.full}<br />
+                        {BUSINESS_INFO.location}
                       </Typography>
                     </Box>
                   </Stack>

@@ -67,8 +67,8 @@ export default function Footer() {
               <Stack direction="row" spacing={1} alignItems="flex-start">
                 <LocationIcon sx={{ color: THEME.colors.primary }} />
                 <Typography>
-                  123 Fashion Street<br />
-                  Silver Spring, MD 20910
+                  {BUSINESS_INFO.address.full}<br />
+                  {BUSINESS_INFO.location}
                 </Typography>
               </Stack>
             </Stack>

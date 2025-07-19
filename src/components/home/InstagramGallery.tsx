@@ -1,8 +1,6 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
-import { BUSINESS_INFO } from '@/lib/constants';
 
 const instagramImages = [
   '/images/instagram/imgi_1_278193034_380033810648589_636440153269846173_n.jpg',
@@ -15,19 +13,20 @@ const instagramImages = [
   '/images/instagram/imgi_5_278430911_5220485997974230_5223933189179464051_n.webp'
 ];
 
-const INSTAGRAM_URL = 'https://www.instagram.com/fafresh.cultural.fashion/';
-
 export default function InstagramGallery() {
+  const handleFollowClick = () => {
+    window.open('https://www.instagram.com/fafresh.cultural.fashion/', '_blank');
+  };
+
   return (
     <section className="py-16 relative overflow-hidden">
-      {/* Ethiopian-inspired background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#078930]/5 via-[#FDEF42]/5 to-[#EF3340]/5" />
+      <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-yellow-400/5 to-red-500/5" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold mb-4">
             Follow Us on{' '}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#078930] via-[#FDEF42] to-[#EF3340]">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-green-600 via-yellow-500 to-red-500">
               Instagram
             </span>
           </h2>
@@ -38,12 +37,10 @@ export default function InstagramGallery() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {instagramImages.map((image, index) => (
-            <Link
+            <div
               key={index}
-              href={INSTAGRAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative aspect-square group overflow-hidden rounded-xl shadow-lg cursor-pointer transform transition-transform duration-300 hover:scale-[1.02]"
+              className="relative aspect-square group overflow-hidden rounded-xl shadow-lg transform transition-transform duration-300 hover:scale-105 cursor-pointer"
+              onClick={() => window.open('https://www.instagram.com/fafresh.cultural.fashion/', '_blank')}
             >
               <Image
                 src={image}
@@ -54,26 +51,14 @@ export default function InstagramGallery() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               
-              {/* Ethiopian colors overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#078930]/20 via-[#FDEF42]/20 to-[#EF3340]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              
               <div className="absolute bottom-0 left-0 right-0 p-4 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                 <p className="text-sm font-medium">View on Instagram</p>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
-
-        <div className="text-center mt-12">
-          <Link
-            href={INSTAGRAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center px-8 py-3 border-2 border-[#078930] text-lg font-medium rounded-full text-[#078930] hover:bg-[#078930] hover:text-white transition-colors duration-300"
-          >
-            Follow Us
-          </Link>
-        </div>
+        
+ 
       </div>
     </section>
   );

@@ -81,7 +81,7 @@ const Header = () => {
       </IconButton>
       <IconButton
         component="a"
-        href={`https://wa.me/${BUSINESS_INFO.phone.replace(/[^0-9]/g, '')}`}
+        href={BUSINESS_INFO.whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
         size="small"

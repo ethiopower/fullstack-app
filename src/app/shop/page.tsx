@@ -282,8 +282,11 @@ export default function ShopPage() {
                       <Button
                         variant="contained"
                         fullWidth
-                        component={Link}
-                        href={`/customize?product=${product.id}`}
+                        onClick={() => {
+                          // Add to cart functionality
+                          console.log(`Added ${product.name} to cart`);
+                          // You can integrate with your cart context here
+                        }}
                         sx={{
                           bgcolor: THEME.colors.primary,
                           '&:hover': {
@@ -291,7 +294,7 @@ export default function ShopPage() {
                           }
                         }}
                       >
-                        Customize
+                        Add to Cart
                       </Button>
                     </CardActions>
                   </Card>

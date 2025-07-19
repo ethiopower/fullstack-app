@@ -251,8 +251,8 @@ export default function OrderTrackingPage({
                           Address
                         </Typography>
                         <Typography variant="body1">
-                          123 Fashion Street<br />
-                          Silver Spring, MD 20910
+                          {BUSINESS_INFO.address.full}<br />
+                          {BUSINESS_INFO.location}
                         </Typography>
                       </Box>
                     </Stack>

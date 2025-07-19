@@ -1,17 +1,28 @@
 // Business Information
 export const BUSINESS_INFO = {
   brandName: "Fafresh Cultural Fashion",
-  googleMapUrl: "https://share.google/JaLAipUnOJ3Ga24HU",
+  address: {
+    street: "Inside the Global Foods, 13814 Outlet Dr",
+    city: "Silver Spring",
+    state: "MD",
+    zipCode: "20904",
+    full: "Inside the Global Foods, 13814 Outlet Dr, Silver Spring, MD 20904"
+  },
+  location: "Briggs Chaney Market Place",
+  googleMapUrl: "https://goo.gl/maps/YOUR_ACTUAL_MAP_LINK", // Update with your actual Google Maps link from the business profile
   instagramUrl: "https://www.instagram.com/fafresh.cultural.fashion/",
-  youtubeUrl: "https://www.youtube.com/@fafreshfashion505",
+  youtubeUrl: "https://www.youtube.com/watch?v=Nkdo9jCUnRw", // Replace with your actual video URL
   tiktokUrl: "https://www.tiktok.com/@fafresh.cultural.fashion",
-  whatsappUrl: `https://wa.me/13013286862?text=${encodeURIComponent("Hi, I was forwarded here from your website,")}`,
+  whatsappUrl: `https://wa.me/13013286862?text=${encodeURIComponent("Hi, I found you through your website. I'm interested in your custom fashion services.")}`,
   contactEmail: "info@fafreshfashion.com",
-  phone: "+1 (123) 456-7890",
+  phone: "(240) 704-9915",
+  phoneFormatted: "+1 (240) 704-9915",
+  whatsappPhone: "+1 (301) 328-6862",
   storeHours: {
-    weekdays: "10 AM – 7 PM",
-    saturday: "11 AM – 5 PM",
-    sunday: "Closed"
+    weekdays: "Open - Closes 8:30 PM",
+    saturday: "Open - Closes 8:30 PM",
+    sunday: "Check store hours",
+    display: "Open · Closes 8:30 PM"
   },
   marketing: {
     deliveryTime: "3 WEEK FREE DELIVERY TO STORE",

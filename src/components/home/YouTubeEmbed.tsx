@@ -82,7 +82,7 @@ export default function YouTubeEmbed() {
           />
         </Box>
       )}
-      {isClient && isPlaying && (
+      {isClient && (
         <ReactPlayer
           url={BUSINESS_INFO.youtubeUrl}
           width="100%"

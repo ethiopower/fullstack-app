@@ -15,22 +15,16 @@ import { THEME } from '@/lib/constants';
 
 const teamMembers = [
   {
-    name: 'Sami Fekadu',
-    role: 'Founder & Creative Director',
-    image: '/images/team/sami.jpg',
-    bio: 'With over 10 years of experience in Ethiopian fashion, Sami brings traditional craftsmanship into the modern era.'
+    name: 'Fekadu Gerbi',
+    role: 'Owner',
+    image: '/images/team/fekadu.jpg',
+    bio: 'With a passion for preserving Ethiopian cultural fashion, Fekadu founded Fafresh to bring authentic traditional wear to the modern world.'
   },
   {
-    name: 'Sarah Johnson',
-    role: 'Lead Designer',
-    image: '/images/team/sarah.jpg',
-    bio: 'Sarah specializes in blending contemporary styles with traditional Ethiopian patterns and textiles.'
-  },
-  {
-    name: 'Michael Haile',
-    role: 'Master Tailor',
-    image: '/images/team/michael.jpg',
-    bio: 'A third-generation tailor, Michael ensures every garment meets our exacting standards of quality.'
+    name: 'Amena Abdelkadir',
+    role: 'Style Specialist',
+    image: '/images/team/amena.jpg',
+    bio: 'Amena brings expertise in traditional Ethiopian fashion styling, helping customers find the perfect designs for their special occasions.'
   }
 ];
 

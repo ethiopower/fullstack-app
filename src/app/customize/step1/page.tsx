@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Typography,
   Grid,
@@ -12,47 +12,70 @@ import {
   RadioGroup,
   FormControlLabel,
   FormControl,
-  FormLabel
+  FormLabel,
+  Chip,
+  Box
 } from '@mui/material';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { THEME, PRODUCT_DESIGNS, Gender, Occasion } from '@/lib/constants';
+
+interface Person {
+  id: string;
+  name: string;
+  gender: 'men' | 'women' | 'children';
+}
 
 // Client-side component for the form
 export default function StyleSelectionPage() {
   const router = useRouter();
-  const [formState, setFormState] = useState<{
-    gender: Gender;
-    occasion: Occasion | '';
-  }>({
-    gender: 'men',
-    occasion: ''
-  });
+  const searchParams = useSearchParams();
+  const personId = searchParams.get('personId');
+  
+  const [people, setPeople] = useState<Person[]>([]);
+  const [currentPerson, setCurrentPerson] = useState<Person | null>(null);
+  const [selectedOccasion, setSelectedOccasion] = useState<Occasion | ''>('');
 
-  const handleGenderChange = (newGender: Gender) => {
-    setFormState({
-      gender: newGender,
-      occasion: ''
-    });
-  };
+  useEffect(() => {
+    // Load people from sessionStorage
+    if (typeof window === 'undefined') return;
+    
+    const storedPeople = sessionStorage.getItem('orderPeople');
+    if (!storedPeople || !personId) {
+      router.push('/customize/step0');
+      return;
+    }
 
-  const handleOccasionChange = (newOccasion: Occasion) => {
-    setFormState(prev => ({
-      ...prev,
-      occasion: newOccasion
-    }));
-  };
+    try {
+      const peopleList = JSON.parse(storedPeople) as Person[];
+      setPeople(peopleList);
+      
+      const person = peopleList.find(p => p.id === personId);
+      if (person) {
+        setCurrentPerson(person);
+      } else {
+        router.push('/customize/step0');
+      }
+    } catch (error) {
+      router.push('/customize/step0');
+    }
+  }, [personId, router]);
 
   const handleNext = () => {
-    if (formState.gender && formState.occasion) {
+    if (currentPerson && selectedOccasion) {
       const params = new URLSearchParams();
-      params.set('gender', formState.gender);
-      params.set('occasion', formState.occasion);
+      params.set('personId', currentPerson.id);
+      params.set('gender', currentPerson.gender);
+      params.set('occasion', selectedOccasion);
       router.push(`/customize/step2?${params.toString()}`);
     }
   };
 
+  if (!currentPerson) {
+    return <div>Loading...</div>;
+  }
+
   // Get available occasions for the selected gender
-  const availableOccasions = Object.keys(PRODUCT_DESIGNS[formState.gender]) as Occasion[];
+  const availableOccasions = Object.keys(PRODUCT_DESIGNS[currentPerson.gender as Gender]) as Occasion[];
 
   return (
     <>
@@ -81,7 +104,7 @@ export default function StyleSelectionPage() {
       </Typography>
 
       <Grid container spacing={4}>
-        {/* Gender Selection */}
+        {/* Person Information */}
         <Grid item xs={12} md={6}>
           <Card 
             elevation={0} 
@@ -95,54 +118,27 @@ export default function StyleSelectionPage() {
             }}
           >
             <CardContent>
-              <FormControl component="fieldset" fullWidth>
-                <FormLabel
-                  component="legend"
-                  sx={{
-                    fontSize: '1.25rem',
-                    fontFamily: THEME.typography.headingFamily,
-                    color: 'text.primary',
-                    mb: 3
-                  }}
-                >
-                  Who is this for?
-                </FormLabel>
-                <RadioGroup
-                  value={formState.gender}
-                  onChange={(e) => handleGenderChange(e.target.value as Gender)}
-                >
-                  <Stack spacing={2}>
-                    <FormControlLabel
-                      value="men"
-                      control={
-                        <Radio
-                          sx={{
-                            color: THEME.colors.primary,
-                            '&.Mui-checked': {
-                              color: THEME.colors.primary
-                            }
-                          }}
-                        />
-                      }
-                      label="Men's Collection"
-                    />
-                    <FormControlLabel
-                      value="women"
-                      control={
-                        <Radio
-                          sx={{
-                            color: THEME.colors.primary,
-                            '&.Mui-checked': {
-                              color: THEME.colors.primary
-                            }
-                          }}
-                        />
-                      }
-                      label="Women's Collection"
-                    />
-                  </Stack>
-                </RadioGroup>
-              </FormControl>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontSize: '1.25rem',
+                  fontFamily: THEME.typography.headingFamily,
+                  color: 'text.primary',
+                  mb: 3
+                }}
+              >
+                Designing for: {currentPerson.name}
+              </Typography>
+              <Chip
+                label={`${currentPerson.gender.charAt(0).toUpperCase() + currentPerson.gender.slice(1)}'s Collection`}
+                sx={{
+                  bgcolor: THEME.colors.primary,
+                  color: 'white',
+                  fontSize: '1rem',
+                  py: 2,
+                  px: 3
+                }}
+              />
             </CardContent>
           </Card>
         </Grid>
@@ -174,8 +170,8 @@ export default function StyleSelectionPage() {
                   What's the occasion?
                 </FormLabel>
                 <RadioGroup
-                  value={formState.occasion}
-                  onChange={(e) => handleOccasionChange(e.target.value as Occasion)}
+                  value={selectedOccasion}
+                  onChange={(e) => setSelectedOccasion(e.target.value as Occasion)}
                 >
                   <Stack spacing={2}>
                     {availableOccasions.map((occasionId) => (
@@ -212,7 +208,7 @@ export default function StyleSelectionPage() {
         <Button
           variant="contained"
           onClick={handleNext}
-          disabled={!formState.gender || !formState.occasion}
+          disabled={!currentPerson || !selectedOccasion}
           sx={{
             bgcolor: THEME.colors.primary,
             color: 'white',
