@@ -1,3 +1,4 @@
 node_modules
 .next/**
 creds.ts
+.env.local

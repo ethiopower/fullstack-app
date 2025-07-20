@@ -55,10 +55,44 @@ const orderSteps = [
   }
 ];
 
+interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  size?: string;
+  isCustom?: boolean;
+  measurements?: { [key: string]: string };
+  color?: string;
+  personId?: string;
+}
+
+interface Person {
+  id: string;
+  name: string;
+  measurements?: { [key: string]: string };
+}
+
+interface Order {
+  id: string;
+  status: string;
+  total: number;
+  subtotal: number;
+  tax: number;
+  items: OrderItem[];
+  people?: Person[];
+  customer?: {
+    name: string;
+    email: string;
+    phone?: string;
+  };
+  pickupDate?: string;
+}
+
 export default function OrderTrackingPage() {
   const params = useParams();
   const orderId = params.orderId as string;
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -195,66 +229,103 @@ export default function OrderTrackingPage() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
                     Order Items:
                   </Typography>
-                  {order.items?.map((item: any, index: number) => {
-                    const person = order.people?.find((p: any) => p.id === item.personId);
+                  {order.items?.map((item: OrderItem, index: number) => {
+                    const person = order.people?.find((p: Person) => p.id === item.personId);
                     return (
                       <Card 
                         key={index} 
                         variant="outlined" 
                         sx={{ mb: 2, p: 2, bgcolor: 'grey.50' }}
                       >
-                        <Typography variant="subtitle2" gutterBottom>
-                          {item.name}
-                        </Typography>
-                        <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                          <Chip 
-                            label={`Qty: ${item.quantity}`} 
-                            size="small" 
-                            variant="outlined" 
-                          />
-                          <Chip 
-                            label={item.size} 
-                            size="small" 
-                            color={item.size === 'Custom' ? 'primary' : 'default'}
-                            variant="outlined" 
-                          />
-                        </Stack>
-                        {person && (
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              For: {person.name}
-                            </Typography>
-                            {item.size === 'Custom' && person.measurements && (
-                              <Box sx={{ mt: 1 }}>
-                                <Typography variant="caption" color="text.secondary">
-                                  Measurements:
-                                </Typography>
-                                <Grid container spacing={1} sx={{ mt: 0.5 }}>
-                                  {Object.entries(person.measurements).map(([key, value]) => (
-                                    <Grid item xs={6} key={key}>
-                                      <Typography 
-                                        variant="caption" 
-                                        sx={{ 
-                                          display: 'flex', 
-                                          justifyContent: 'space-between',
-                                          color: 'text.secondary'
-                                        }}
-                                      >
-                                        <span style={{ textTransform: 'capitalize' }}>
-                                          {key}:
-                                        </span>
-                                        <span>{value}"</span>
-                                      </Typography>
-                                    </Grid>
-                                  ))}
-                                </Grid>
-                              </Box>
+                        <Stack spacing={1}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                            {item.name}
+                          </Typography>
+                          <Stack direction="row" spacing={1} flexWrap="wrap">
+                            <Chip 
+                              label={`Qty: ${item.quantity}`} 
+                              size="small" 
+                              variant="outlined" 
+                            />
+                            {item.size && (
+                              <Chip 
+                                label={item.size} 
+                                size="small" 
+                                color={item.isCustom ? 'primary' : 'default'}
+                                variant="outlined" 
+                              />
                             )}
-                          </Box>
-                        )}
+                            {item.color && (
+                              <Chip 
+                                label={item.color} 
+                                size="small" 
+                                variant="outlined" 
+                              />
+                            )}
+                          </Stack>
+                          {person && (
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">
+                                For: {person.name}
+                              </Typography>
+                              {item.isCustom && item.measurements && (
+                                <Box sx={{ mt: 1 }}>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Measurements:
+                                  </Typography>
+                                  <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                                    {Object.entries(item.measurements).map(([key, value]) => (
+                                      <Grid item xs={6} key={key}>
+                                        <Typography 
+                                          variant="caption" 
+                                          sx={{ 
+                                            display: 'flex', 
+                                            justifyContent: 'space-between',
+                                            color: 'text.secondary'
+                                          }}
+                                        >
+                                          <span style={{ textTransform: 'capitalize' }}>
+                                            {key}:
+                                          </span>
+                                          <span>{value} cm</span>
+                                        </Typography>
+                                      </Grid>
+                                    ))}
+                                  </Grid>
+                                </Box>
+                              )}
+                            </Box>
+                          )}
+                          <Typography variant="body2" color="primary" sx={{ fontWeight: 500 }}>
+                            ${(item.price * item.quantity).toFixed(2)}
+                          </Typography>
+                        </Stack>
                       </Card>
                     );
                   })}
+                </Box>
+
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">Subtotal:</Typography>
+                  <Typography variant="subtitle2">
+                    ${order.subtotal?.toFixed(2) || '0.00'}
+                  </Typography>
+                </Box>
+
+                {order.tax > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary">Tax:</Typography>
+                    <Typography variant="subtitle2">
+                      ${order.tax.toFixed(2)}
+                    </Typography>
+                  </Box>
+                )}
+
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">Total:</Typography>
+                  <Typography variant="h6" sx={{ color: THEME.colors.primary, fontWeight: 600 }}>
+                    ${order.total?.toFixed(2) || '0.00'}
+                  </Typography>
                 </Box>
 
                 <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
@@ -277,31 +348,30 @@ export default function OrderTrackingPage() {
 
                 {/* Customer Information */}
                 {order.customer && (
-                  <Box sx={{ mt: 3, p: 2, bgcolor: 'primary.50', borderRadius: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                      Customer Information:
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary">Customer:</Typography>
+                    <Typography variant="subtitle2">
+                      {order.customer.name}
                     </Typography>
-                    <Typography variant="body2">
-                      {order.customer.firstName} {order.customer.lastName}<br />
-                      {order.customer.email && `${order.customer.email}`}<br />
-                      {order.customer.phone && `Phone: ${order.customer.phone}`}
+                    <Typography variant="body2" color="text.secondary">
+                      {order.customer.email}
                     </Typography>
+                    {order.customer.phone && (
+                      <Typography variant="body2" color="text.secondary">
+                        {order.customer.phone}
+                      </Typography>
+                    )}
                   </Box>
                 )}
 
                 {/* Pickup Details */}
                 {order.pickupDate && (
-                  <Box sx={{ mt: 2, p: 2, bgcolor: 'success.50', borderRadius: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                      Pickup Details:
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Estimated Pickup Date:
                     </Typography>
-                    <Typography variant="body2">
-                      {new Date(order.pickupDate).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric', 
-                        month: 'long',
-                        day: 'numeric'
-                      })}
+                    <Typography variant="subtitle2">
+                      {new Date(order.pickupDate).toLocaleDateString()}
                     </Typography>
                   </Box>
                 )}

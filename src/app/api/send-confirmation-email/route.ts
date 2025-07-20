@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 
+interface OrderItem {
+  name: string;
+  price: number;
+  quantity: number;
+  size?: string;
+  color?: string;
+  isCustom?: boolean;
+  measurements?: { [key: string]: string };
+  personName?: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { orderId, customerEmail, customerName, orderTotal, trackingUrl } = await request.json();
+    const { 
+      orderId, 
+      customerEmail, 
+      customerName, 
+      orderTotal, 
+      trackingUrl,
+      items = [] as OrderItem[]
+    } = await request.json();
 
     // Validate required fields
     if (!orderId || !customerEmail || !customerName) {
@@ -13,13 +31,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Format items for email template
+    const formattedItems = items.map((item: OrderItem) => ({
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      size: item.size,
+      color: item.color,
+      isCustom: item.isCustom,
+      measurements: item.measurements,
+      personName: item.personName
+    }));
+
     // Send actual email using SendGrid
     try {
       await sendOrderConfirmationEmail({
         orderId,
         customerName,
         customerEmail,
-        items: [], // Will be populated from order data
+        items: formattedItems,
         subtotal: Math.round((orderTotal || 0) / 100),
         deposit: Math.round((orderTotal || 0) / 100)
       });
@@ -34,7 +64,23 @@ export async function POST(request: NextRequest) {
     } catch (emailError) {
       console.error('SendGrid email error:', emailError);
       
-      // Fallback: Create detailed email content for manual sending or alternative service
+      // Create detailed email content for fallback
+      const itemsList = formattedItems.map((item: OrderItem) => {
+        const measurementsText = item.isCustom && item.measurements
+          ? Object.entries(item.measurements)
+              .map(([key, value]) => `\n    - ${key}: ${value} cm`)
+              .join('')
+          : '';
+
+        return `
+          • ${item.name} x ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}
+            ${item.personName ? `For: ${item.personName}` : ''}
+            ${item.size ? `Size: ${item.size}` : ''}
+            ${item.color ? `Color: ${item.color}` : ''}
+            ${measurementsText}
+        `;
+      }).join('\n');
+
       const fallbackEmailContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #2e7d32; color: white; padding: 20px; text-align: center;">
@@ -49,6 +95,10 @@ export async function POST(request: NextRequest) {
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
               <h3>Order Details:</h3>
               <p><strong>Order ID:</strong> ${orderId}</p>
+              <div style="margin: 15px 0;">
+                <strong>Items:</strong>
+                <pre style="margin: 10px 0; white-space: pre-wrap;">${itemsList}</pre>
+              </div>
               <p><strong>Total:</strong> $${((orderTotal || 0) / 100).toFixed(2)}</p>
               <p><strong>Status:</strong> Preparing</p>
             </div>

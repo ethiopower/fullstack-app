@@ -4,11 +4,14 @@ interface OrderConfirmationData {
   orderId: string;
   customerName: string;
   items: Array<{
-    gender: string;
-    occasion: string;
-    design: {
-      name: string;
-    };
+    name: string;
+    price: number;
+    quantity: number;
+    size?: string;
+    color?: string;
+    isCustom?: boolean;
+    measurements?: { [key: string]: string };
+    personName?: string;
   }>;
   subtotal: number;
   deposit: number;
@@ -120,9 +123,33 @@ const baseTemplate = (content: string) => `
 
 export function getOrderConfirmationTemplate(data: OrderConfirmationData): string {
   const itemsList = data.items
-    .map(item => `
-      <li>Custom ${item.gender}'s ${item.occasion} Outfit - ${item.design.name}</li>
-    `)
+    .map(item => {
+      const measurementsHtml = item.isCustom && item.measurements ? `
+        <div style="margin-left: 20px; font-size: 14px; color: #666;">
+          <p style="margin: 5px 0;"><strong>Measurements:</strong></p>
+          ${Object.entries(item.measurements)
+            .map(([key, value]) => `
+              <p style="margin: 2px 0;">
+                ${key.charAt(0).toUpperCase() + key.slice(1)}: ${value} cm
+              </p>
+            `)
+            .join('')}
+        </div>
+      ` : '';
+
+      return `
+        <li style="margin-bottom: 15px;">
+          <div>
+            <strong>${item.name}</strong> x ${item.quantity}
+            <span style="color: #078930;"> - $${(item.price * item.quantity).toFixed(2)}</span>
+          </div>
+          ${item.personName ? `<div style="margin-left: 20px; color: #666;">For: ${item.personName}</div>` : ''}
+          ${item.size ? `<div style="margin-left: 20px; color: #666;">Size: ${item.size}</div>` : ''}
+          ${item.color ? `<div style="margin-left: 20px; color: #666;">Color: ${item.color}</div>` : ''}
+          ${measurementsHtml}
+        </li>
+      `;
+    })
     .join('');
 
   const content = `
@@ -133,7 +160,7 @@ export function getOrderConfirmationTemplate(data: OrderConfirmationData): strin
     <div style="background-color: #f9f9f9; padding: 20px; margin: 20px 0; border-radius: 4px;">
       <p><strong>Order ID:</strong> ${data.orderId}</p>
       <p><strong>Items:</strong></p>
-      <ul>
+      <ul style="list-style-type: none; padding-left: 0;">
         ${itemsList}
       </ul>
       <p><strong>Subtotal:</strong> $${data.subtotal.toFixed(2)}</p>

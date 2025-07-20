@@ -9,13 +9,26 @@ import {
 
 // Check if SendGrid API key is available
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL;
 const EMAIL_ENABLED = !!SENDGRID_API_KEY;
 
 if (EMAIL_ENABLED) {
-  sgMail.setApiKey(SENDGRID_API_KEY);
+  sgMail.setApiKey(SENDGRID_API_KEY!);
   console.log('✅ SendGrid email service initialized');
+  
+  // Validate from email
+  if (!SENDGRID_FROM_EMAIL) {
+    console.warn('⚠️  SENDGRID_FROM_EMAIL not found. Using default: orders@fafresh.com');
+  } else {
+    console.log(`✅ Using sender email: ${SENDGRID_FROM_EMAIL}`);
+  }
 } else {
   console.warn('⚠️  SENDGRID_API_KEY not found. Email will be logged to console only.');
+  console.log('To enable email sending:');
+  console.log('1. Add SENDGRID_API_KEY to .env.local');
+  console.log('2. Add SENDGRID_FROM_EMAIL to .env.local');
+  console.log('3. Verify sender email in SendGrid');
+  console.log('4. Restart the development server');
 }
 
 interface OrderConfirmationData {
@@ -23,11 +36,14 @@ interface OrderConfirmationData {
   customerName: string;
   customerEmail: string;
   items: Array<{
-    gender: string;
-    occasion: string;
-    design: {
-      name: string;
-    };
+    name: string;
+    price: number;
+    quantity: number;
+    size?: string;
+    color?: string;
+    isCustom?: boolean;
+    measurements?: { [key: string]: string };
+    personName?: string;
   }>;
   subtotal: number;
   deposit: number;
@@ -63,18 +79,28 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
       const msg = {
         to: data.customerEmail,
         from: {
-          email: process.env.SENDGRID_FROM_EMAIL || 'orders@fafresh.com',
+          email: SENDGRID_FROM_EMAIL || 'orders@fafresh.com',
           name: 'Fafresh Cultural Fashion'
         },
         subject,
         html: htmlContent,
       };
 
+      console.log('📧 Sending email via SendGrid:', {
+        to: data.customerEmail,
+        from: msg.from.email,
+        subject
+      });
+
       await sgMail.send(msg);
       console.log(`✅ Order confirmation email sent to ${data.customerEmail}`);
       return { success: true };
-    } catch (error) {
-      console.error('SendGrid error:', error);
+    } catch (error: any) {
+      console.error('SendGrid error:', {
+        message: error.message,
+        response: error.response?.body,
+        code: error.code
+      });
       throw error;
     }
   } else {

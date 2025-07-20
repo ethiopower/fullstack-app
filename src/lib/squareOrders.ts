@@ -1,126 +1,94 @@
 // Square Orders API integration
-import { squarecreds } from './creds';
+import { v4 as uuidv4 } from 'uuid';
 
 const SQUARE_API_BASE = 'https://connect.squareupsandbox.com/v2';
+const SQUARE_ACCESS_TOKEN = process.env.SQUARE_ACCESS_TOKEN;
+const SQUARE_LOCATION_ID = process.env.SQUARE_LOCATION_ID;
 
-interface SquareOrderItem {
+// Validate Square configuration
+if (!SQUARE_ACCESS_TOKEN || !SQUARE_LOCATION_ID) {
+  console.error('Missing Square configuration. Please check your .env.local file.');
+}
+
+interface OrderItem {
   name: string;
-  quantity: string;
-  base_price_money: {
+  quantity: number;
+  basePriceMoney: {
     amount: number;
     currency: string;
   };
-  variation_name?: string;
   metadata?: { [key: string]: string };
 }
 
-interface SquareOrderRequest {
-  location_id: string;
+interface CreateOrderRequest {
+  location_id: string; // Required by Square API
   order: {
     location_id: string; // Required by Square API
     reference_id: string;
-    line_items: SquareOrderItem[];
+    line_items: OrderItem[];
     metadata?: { [key: string]: string };
   };
   idempotency_key: string;
 }
 
-export const squareOrders = {
-  async createOrder(orderData: {
-    orderId: string;
-    customerEmail: string;
-    items: Array<{
-      name: string;
-      price: number;
-      quantity: number;
-      size?: string;
-      color?: string;
-      customizations?: any;
-      personId?: string;
-    }>;
-    people?: Array<{
-      id: string;
-      name: string;
-      category: string;
-      gender: string;
-      measurements: any;
-    }>;
-    total: number;
-  }) {
-    try {
-      // Prepare line items for Square
-             const lineItems: SquareOrderItem[] = orderData.items.map(item => ({
-         name: item.name,
-         quantity: item.quantity.toString(),
-         base_price_money: {
-           amount: Math.round(item.price * 100), // Convert to cents
-           currency: 'USD'
-         },
-         variation_name: item.size || item.color || undefined,
-         metadata: {
-           size: item.size || '',
-           color: item.color || '',
-           person_id: item.personId || 'default',
-           customizations: JSON.stringify(item.customizations || {})
-         }
-       }));
+export interface OrderData {
+  orderId: string;
+  customerEmail: string;
+  items: OrderItem[];
+  metadata?: { [key: string]: string };
+}
 
-             const squareOrderData: SquareOrderRequest = {
-         location_id: squarecreds.locationId,
-         order: {
-           location_id: squarecreds.locationId, // Square API requires location_id in the order object too
-           reference_id: orderData.orderId,
-           line_items: lineItems,
-           metadata: {
-             customer_email: orderData.customerEmail,
-             order_type: 'custom_fashion',
-             created_at: new Date().toISOString(),
-             people: JSON.stringify(orderData.people || [
-               {
-                 id: 'default',
-                 name: 'Customer',
-                 category: 'adult',
-                 gender: 'unisex',
-                 measurements: {}
-               }
-             ])
-           }
-         },
-         idempotency_key: `order-${orderData.orderId}-${Date.now()}`
-       };
+export async function createOrder(orderData: OrderData) {
+  try {
+    const requestData: CreateOrderRequest = {
+      location_id: SQUARE_LOCATION_ID!, // Square API requires location_id in the order object too
+      order: {
+        location_id: SQUARE_LOCATION_ID!,
+        reference_id: orderData.orderId,
+        line_items: orderData.items,
+        metadata: {
+          customer_email: orderData.customerEmail,
+          order_type: 'custom_fashion',
+          created_at: new Date().toISOString(),
+          ...orderData.metadata
+        }
+      },
+      idempotency_key: `order-${orderData.orderId}-${Date.now()}`
+    };
 
-      console.log('Creating Square order:', JSON.stringify(squareOrderData, null, 2));
+    console.log('Creating Square order:', JSON.stringify(requestData, null, 2));
 
-      const response = await fetch(`${SQUARE_API_BASE}/orders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${squarecreds.secret}`,
-          'Square-Version': '2023-10-18'
-        },
-        body: JSON.stringify(squareOrderData)
-      });
+    const response = await fetch(`${SQUARE_API_BASE}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SQUARE_ACCESS_TOKEN}`,
+        'Square-Version': '2024-01-18'
+      },
+      body: JSON.stringify(requestData)
+    });
 
-      const result = await response.json();
+    const result = await response.json();
 
-      if (!response.ok) {
-        console.error('Square order creation failed:', result);
-        throw new Error(`Square order creation failed: ${JSON.stringify(result.errors)}`);
-      }
-
-      console.log('✅ Square order created successfully:', result.order.id);
-      return {
-        success: true,
-        squareOrderId: result.order.id,
-        order: result.order
-      };
-
-    } catch (error) {
-      console.error('Error creating Square order:', error);
-      throw error;
+    if (!response.ok) {
+      console.error('Square order creation failed:', result);
+      throw new Error(`Square order creation failed: ${JSON.stringify(result.errors)}`);
     }
-  },
 
+    console.log('✅ Square order created successfully:', result.order.id);
+    return {
+      success: true,
+      squareOrderId: result.order.id,
+      order: result.order
+    };
+
+  } catch (error) {
+    console.error('Error creating Square order:', error);
+    throw error;
+  }
+}
+
+export const squareOrders = {
   async getOrder(orderId: string) {
     try {
       // First, search for order by reference_id
@@ -128,11 +96,11 @@ export const squareOrders = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${squarecreds.secret}`,
+          'Authorization': `Bearer ${SQUARE_ACCESS_TOKEN}`,
           'Square-Version': '2023-10-18'
         },
         body: JSON.stringify({
-          location_ids: [squarecreds.locationId],
+          location_ids: [SQUARE_LOCATION_ID!],
           query: {
             filter: {
               reference_id_filter: {
