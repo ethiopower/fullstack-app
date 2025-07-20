@@ -51,7 +51,8 @@ export async function POST(request: NextRequest) {
         customerEmail,
         items: formattedItems,
         subtotal: Math.round((orderTotal || 0) / 100),
-        deposit: Math.round((orderTotal || 0) / 100)
+        deposit: Math.round((orderTotal || 0) / 100),
+        trackingUrl: trackingUrl || `${request.headers.get('origin')}/order-tracking/${orderId}`
       });
 
       console.log(`✅ Order confirmation email sent to ${customerEmail} for order ${orderId}`);

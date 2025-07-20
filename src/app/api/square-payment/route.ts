@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { squarecreds } from '@/lib/creds';
-import { squareOrders } from '@/lib/squareOrders';
+import { createOrder } from '@/lib/squareOrders';
+
+// Square configuration from environment variables
+const SQUARE_ACCESS_TOKEN = process.env.SQUARE_ACCESS_TOKEN;
+const SQUARE_LOCATION_ID = process.env.SQUARE_LOCATION_ID;
+
+// Validate Square configuration
+if (!SQUARE_ACCESS_TOKEN || !SQUARE_LOCATION_ID) {
+  console.error('Missing Square configuration. Please check your .env.local file.');
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,11 +25,26 @@ export async function POST(request: NextRequest) {
 
     // Create order in Square first
     try {
-      const squareOrderResult = await squareOrders.createOrder({
+      const squareOrderResult = await createOrder({
         orderId,
         customerEmail,
-        items: orderData?.items || [],
-        total: amount / 100 // Convert from cents
+        items: orderData?.items?.map((item: any) => ({
+          name: item.name,
+          quantity: item.quantity,
+          basePriceMoney: {
+            amount: Math.round(item.price * 100),
+            currency: 'USD'
+          },
+          metadata: {
+            size: item.size || '',
+            color: item.color || '',
+            personId: item.personId || 'default',
+            measurements: item.measurements ? JSON.stringify(item.measurements) : '{}'
+          }
+        })) || [],
+        metadata: {
+          people: orderData?.people ? JSON.stringify(orderData.people) : undefined
+        }
       });
 
       console.log('✅ Square order created:', squareOrderResult.squareOrderId);
@@ -38,7 +61,7 @@ export async function POST(request: NextRequest) {
         currency: 'USD'
       },
       idempotency_key: `${orderId}-${Date.now()}`, // Unique key for this payment
-      location_id: squarecreds.locationId, // Use location ID from creds
+      location_id: SQUARE_LOCATION_ID, // Use location ID from environment
       reference_id: orderId, // Use reference_id instead of order_id
       buyer_email_address: customerEmail,
       note: `Custom fashion order ${orderId}`
@@ -52,8 +75,8 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${squarecreds.secret}`,
-        'Square-Version': '2023-10-18'
+        'Authorization': `Bearer ${SQUARE_ACCESS_TOKEN}`,
+        'Square-Version': '2024-01-18'
       },
       body: JSON.stringify(squarePaymentData)
     });

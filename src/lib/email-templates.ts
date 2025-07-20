@@ -15,6 +15,7 @@ interface OrderConfirmationData {
   }>;
   subtotal: number;
   deposit: number;
+  trackingUrl: string;
 }
 
 interface OrderStatusUpdateData {
@@ -166,6 +167,16 @@ export function getOrderConfirmationTemplate(data: OrderConfirmationData): strin
       <p><strong>Subtotal:</strong> $${data.subtotal.toFixed(2)}</p>
       <p><strong>Deposit Paid:</strong> $${data.deposit.toFixed(2)}</p>
       <p><strong>Balance Due:</strong> $${(data.subtotal - data.deposit).toFixed(2)}</p>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${data.trackingUrl}" 
+         style="display: inline-block; padding: 12px 24px; background-color: #078930; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+        🔍 Track Your Order
+      </a>
+      <p style="margin-top: 10px; font-size: 14px; color: #666;">
+        Or copy this link: <a href="${data.trackingUrl}" style="color: #078930;">${data.trackingUrl}</a>
+      </p>
     </div>
 
     <p>What happens next?</p>

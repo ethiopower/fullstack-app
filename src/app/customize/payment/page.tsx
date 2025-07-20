@@ -17,7 +17,9 @@ import {
   CircularProgress
 } from '@mui/material';
 import { THEME } from '@/lib/constants';
-import { squarecreds } from '@/lib/creds';
+
+// Square configuration from environment variables
+const SQUARE_APP_ID = process.env.NEXT_PUBLIC_SQUARE_APP_ID;
 
 type PendingOrder = {
   orderSummary: {
@@ -125,12 +127,12 @@ export default function PaymentPage() {
 
         console.log('Initializing Square payments...');
         
-        if (!squarecreds.id || squarecreds.id.trim() === '') {
-          console.error('DEVELOPER: Square Application ID not configured in src/lib/creds.ts');
+        if (!SQUARE_APP_ID || SQUARE_APP_ID.trim() === '') {
+          console.error('DEVELOPER: Square Application ID not configured in environment variables');
           throw new Error('Payment system configuration error');
         }
         
-        const payments = window.Square.payments(squarecreds.id);
+        const payments = window.Square.payments(SQUARE_APP_ID);
         const card = await payments.card({
           style: {
             input: {
@@ -155,7 +157,7 @@ export default function PaymentPage() {
         
         const errorStr = (error as Error)?.message || String(error);
         if (errorStr.includes('401')) {
-          console.warn('DEVELOPER: Invalid Square Application ID. Check src/lib/creds.ts');
+          console.warn('DEVELOPER: Invalid Square Application ID. Check your environment variables.');
         } else if (errorStr.includes('domain')) {
           console.warn('DEVELOPER: Add localhost:3000 to Square Dashboard → Web Payments SDK → Domains');
         }

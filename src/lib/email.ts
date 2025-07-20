@@ -47,6 +47,7 @@ interface OrderConfirmationData {
   }>;
   subtotal: number;
   deposit: number;
+  trackingUrl: string;
 }
 
 interface OrderStatusUpdateData {

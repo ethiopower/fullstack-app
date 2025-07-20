@@ -17,7 +17,13 @@ interface OrderItem {
     amount: number;
     currency: string;
   };
-  metadata?: { [key: string]: string };
+  metadata?: {
+    size?: string;
+    color?: string;
+    personId?: string;
+    measurements?: string;
+    [key: string]: string | undefined;
+  };
 }
 
 interface CreateOrderRequest {
