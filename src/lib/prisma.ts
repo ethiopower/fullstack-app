@@ -1,11 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+// Database functionality moved to Square Orders API
+// See src/lib/squareOrders.ts for order management
+// All orders are now stored and retrieved from Square
 
-declare global {
-  var prisma: PrismaClient | undefined;
-}
-
-export const prisma = global.prisma || new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma;
-} 
+export const prisma = null; // Deprecated - using Square Orders API 

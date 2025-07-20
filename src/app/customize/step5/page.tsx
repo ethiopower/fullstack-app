@@ -2,11 +2,27 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  Box,
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  Button,
+  Stack,
+  TextField,
+  Grid,
+  Alert,
+  Divider
+} from '@mui/material';
+import { THEME } from '@/lib/constants';
 
 type OrderSummary = {
+  items: any[];
+  people: any[];
   subtotal: number;
-  deposit: number;
-  balance: number;
+  tax: number;
+  total: number;
 };
 
 type CustomerInfo = {
@@ -16,13 +32,16 @@ type CustomerInfo = {
   phone: string;
   address: string;
   city: string;
+  state: string;
+  zipCode: string;
   notes: string;
 };
 
-export default function Step5() {
+export default function GuestCheckoutPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSummary, setOrderSummary] = useState<OrderSummary | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     firstName: '',
     lastName: '',
@@ -30,253 +49,376 @@ export default function Step5() {
     phone: '',
     address: '',
     city: '',
+    state: '',
+    zipCode: '',
     notes: '',
   });
 
   useEffect(() => {
-    // Load order summary from session storage
     if (typeof window === 'undefined') return;
     
-    const storedSummary = sessionStorage.getItem('orderSummary');
-    if (!storedSummary) {
-      router.push('/customize/step4');
-      return;
-    }
-
-    try {
-      setOrderSummary(JSON.parse(storedSummary));
-    } catch (error) {
-      console.error('Error parsing order summary:', error);
-      router.push('/customize/step4');
+    const searchParams = new URLSearchParams(window.location.search);
+    const source = searchParams.get('source');
+    
+    // Handle cart checkout vs custom order checkout
+    if (source === 'cart') {
+      const cartSummary = sessionStorage.getItem('cartOrderSummary');
+      if (!cartSummary) {
+        router.push('/cart');
+        return;
+      }
+      try {
+        setOrderSummary(JSON.parse(cartSummary));
+      } catch (error) {
+        console.error('Error parsing cart summary:', error);
+        router.push('/cart');
+      }
+    } else {
+      // Custom order flow
+      const storedSummary = sessionStorage.getItem('orderSummary');
+      if (!storedSummary) {
+        router.push('/customize/step4');
+        return;
+      }
+      try {
+        setOrderSummary(JSON.parse(storedSummary));
+      } catch (error) {
+        console.error('Error parsing order summary:', error);
+        router.push('/customize/step4');
+      }
     }
   }, [router]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+  const handleInputChange = (field: keyof CustomerInfo, value: string) => {
     setCustomerInfo(prev => ({
       ...prev,
-      [name]: value,
+      [field]: value
     }));
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
   };
 
-  const validatePhone = (phone: string) => {
-    const phoneRegex = /^\d{10}$/;
-    return phoneRegex.test(phone.replace(/[^\d]/g, ''));
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!customerInfo.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    }
+    if (!customerInfo.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+    if (!customerInfo.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(customerInfo.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    if (!customerInfo.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    }
+    if (!customerInfo.address.trim()) {
+      newErrors.address = 'Address is required';
+    }
+    if (!customerInfo.city.trim()) {
+      newErrors.city = 'City is required';
+    }
+    if (!customerInfo.state.trim()) {
+      newErrors.state = 'State is required';
+    }
+    if (!customerInfo.zipCode.trim()) {
+      newErrors.zipCode = 'ZIP code is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleBack = () => {
-    router.push('/customize/step4');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    if (!validatePhone(customerInfo.phone)) {
-      alert('Please enter a valid 10-digit phone number');
-      setIsSubmitting(false);
+  const handleSubmit = async () => {
+    if (!validateForm()) {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
-      // Get all data from session storage
-      if (typeof window === 'undefined') return;
+      // Save customer info to session storage
+      sessionStorage.setItem('customerInfo', JSON.stringify(customerInfo));
       
-      const designs = JSON.parse(sessionStorage.getItem('selectedDesigns')!);
-      const measurements = JSON.parse(sessionStorage.getItem('measurements')!);
-
-      // Create order
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer: customerInfo,
-          designs,
-          measurements,
-          deposit: orderSummary?.deposit || 0,
-          balance: orderSummary?.balance || 0,
-          status: 'pending',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create order');
-      }
-
-      const { orderId } = await response.json();
-
-      // Clear session storage
-      if (typeof window !== 'undefined') {
-        sessionStorage.clear();
-      }
-
-      // Redirect to confirmation page
-      router.push(`/order-confirmation/${orderId}`);
+      // Create order object for payment
+      const order = {
+        orderSummary,
+        customerInfo,
+        timestamp: new Date().toISOString(),
+        orderId: `FAF-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
+      };
+      
+      sessionStorage.setItem('pendingOrder', JSON.stringify(order));
+      
+      // Redirect to payment page
+      router.push('/customize/payment');
+      
     } catch (error) {
-      console.error('Checkout error:', error);
-      alert('An error occurred during checkout. Please try again.');
+      console.error('Error processing checkout:', error);
+      alert('An error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!orderSummary) return null;
+  const handleBack = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const source = searchParams.get('source');
+    
+    if (source === 'cart') {
+      router.push('/cart');
+    } else {
+      router.push('/customize/step4');
+    }
+  };
+
+  if (!orderSummary) {
+    return (
+      <Container maxWidth="md" sx={{ py: 8 }}>
+        <Typography variant="h4" textAlign="center">
+          Loading checkout...
+        </Typography>
+      </Container>
+    );
+  }
 
   return (
-    <div>
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-medium text-slate-900 mb-2">Checkout</h2>
-        <p className="text-slate-600">
-          Please provide your contact information to complete your order
-        </p>
-      </div>
+    <Container maxWidth="lg" sx={{ py: 8 }}>
+      <Typography
+        variant="h1"
+        sx={{
+          fontSize: { xs: '2rem', md: '2.5rem' },
+          fontFamily: THEME.typography.headingFamily,
+          fontWeight: 500,
+          mb: 2,
+          color: 'text.primary',
+          textAlign: 'center'
+        }}
+      >
+        Guest Checkout
+      </Typography>
 
-      <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="firstName" className="block text-sm font-medium text-slate-900">
-              First Name
-            </label>
-            <input
-              type="text"
-              id="firstName"
-              name="firstName"
-              required
-              value={customerInfo.firstName}
-              onChange={handleInputChange}
-              className="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-slate-900 focus:ring-slate-900"
-            />
-          </div>
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          mb: 6,
+          color: 'text.secondary',
+          textAlign: 'center',
+          fontFamily: THEME.typography.headingFamily
+        }}
+      >
+        Enter your information to complete your order
+      </Typography>
 
-          <div>
-            <label htmlFor="lastName" className="block text-sm font-medium text-slate-900">
-              Last Name
-            </label>
-            <input
-              type="text"
-              id="lastName"
-              name="lastName"
-              required
-              value={customerInfo.lastName}
-              onChange={handleInputChange}
-              className="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-slate-900 focus:ring-slate-900"
-            />
-          </div>
+      <Grid container spacing={4}>
+        {/* Customer Information Form */}
+        <Grid item xs={12} md={8}>
+          <Card elevation={2}>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+                Contact Information
+              </Typography>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="First Name *"
+                    value={customerInfo.firstName}
+                    onChange={(e) => handleInputChange('firstName', e.target.value)}
+                    error={!!errors.firstName}
+                    helperText={errors.firstName}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Last Name *"
+                    value={customerInfo.lastName}
+                    onChange={(e) => handleInputChange('lastName', e.target.value)}
+                    error={!!errors.lastName}
+                    helperText={errors.lastName}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Email Address *"
+                    type="email"
+                    value={customerInfo.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    error={!!errors.email}
+                    helperText={errors.email}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Phone Number *"
+                    value={customerInfo.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    error={!!errors.phone}
+                    helperText={errors.phone}
+                  />
+                </Grid>
+              </Grid>
 
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-900">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              required
-              value={customerInfo.email}
-              onChange={handleInputChange}
-              className="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-slate-900 focus:ring-slate-900"
-            />
-          </div>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mt: 4, mb: 3 }}>
+                Shipping Address
+              </Typography>
 
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-slate-900">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              required
-              value={customerInfo.phone}
-              onChange={handleInputChange}
-              placeholder="(123) 456-7890"
-              className="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-slate-900 focus:ring-slate-900"
-            />
-          </div>
-        </div>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Street Address *"
+                    value={customerInfo.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    error={!!errors.address}
+                    helperText={errors.address}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="City *"
+                    value={customerInfo.city}
+                    onChange={(e) => handleInputChange('city', e.target.value)}
+                    error={!!errors.city}
+                    helperText={errors.city}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="State *"
+                    value={customerInfo.state}
+                    onChange={(e) => handleInputChange('state', e.target.value)}
+                    error={!!errors.state}
+                    helperText={errors.state}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="ZIP Code *"
+                    value={customerInfo.zipCode}
+                    onChange={(e) => handleInputChange('zipCode', e.target.value)}
+                    error={!!errors.zipCode}
+                    helperText={errors.zipCode}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Special Instructions (Optional)"
+                    multiline
+                    rows={3}
+                    value={customerInfo.notes}
+                    onChange={(e) => handleInputChange('notes', e.target.value)}
+                    placeholder="Any special requests or delivery instructions..."
+                  />
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
 
-        <div>
-          <label htmlFor="address" className="block text-sm font-medium text-slate-900">
-            Address
-          </label>
-          <input
-            type="text"
-            id="address"
-            name="address"
-            required
-            value={customerInfo.address}
-            onChange={handleInputChange}
-            className="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-slate-900 focus:ring-slate-900"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="city" className="block text-sm font-medium text-slate-900">
-            City
-          </label>
-          <input
-            type="text"
-            id="city"
-            name="city"
-            required
-            value={customerInfo.city}
-            onChange={handleInputChange}
-            className="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-slate-900 focus:ring-slate-900"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="notes" className="block text-sm font-medium text-slate-900">
-            Special Instructions (Optional)
-          </label>
-          <textarea
-            id="notes"
-            name="notes"
-            rows={3}
-            value={customerInfo.notes}
-            onChange={handleInputChange}
-            className="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-slate-900 focus:ring-slate-900"
-          />
-        </div>
-
-        {/* Order Summary */}
-        <div className="bg-slate-50 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-slate-900 mb-4">Order Summary</h3>
-          <div className="space-y-2">
-            <div className="flex justify-between text-slate-600">
-              <span>Subtotal:</span>
-              <span>${orderSummary.subtotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-slate-900 font-medium">
-              <span>Required Deposit (50%):</span>
-              <span>${orderSummary.deposit.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-slate-600 border-t border-slate-200 pt-2 mt-2">
-              <span>Balance Due at Pickup:</span>
-              <span>${orderSummary.balance.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <div className="flex justify-between pt-4">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={isSubmitting}
-            className="px-6 py-2 text-slate-600 font-medium hover:text-slate-900 disabled:opacity-50"
+        {/* Order Summary Sidebar */}
+        <Grid item xs={12} md={4}>
+          <Card 
+            elevation={3}
+            sx={{
+              position: 'sticky',
+              top: 20,
+              border: `2px solid ${THEME.colors.primary}`,
+            }}
           >
-            Back
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-6 py-2 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Processing...' : 'Place Order'}
-          </button>
-        </div>
-      </form>
-    </div>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Order Summary
+              </Typography>
+              
+              <Stack spacing={2}>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>Items ({orderSummary.items.length}):</Typography>
+                  <Typography>${orderSummary.subtotal.toFixed(2)}</Typography>
+                </Box>
+                
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>Tax:</Typography>
+                  <Typography>${orderSummary.tax.toFixed(2)}</Typography>
+                </Box>
+                
+                <Divider />
+                
+                <Box display="flex" justifyContent="space-between">
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Total:
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: THEME.colors.primary }}>
+                    ${orderSummary.total.toFixed(2)}
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Alert severity="info" sx={{ mt: 3, mb: 2 }}>
+                <Typography variant="body2">
+                  Free delivery to our store location. Pickup available in 3-4 weeks.
+                </Typography>
+              </Alert>
+
+              <Button
+                variant="contained"
+                fullWidth
+                size="large"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                sx={{
+                  mt: 2,
+                  bgcolor: THEME.colors.primary,
+                  color: 'white',
+                  py: 2,
+                  fontSize: '1.1rem',
+                  '&:hover': {
+                    bgcolor: THEME.colors.secondary
+                  }
+                }}
+              >
+                {isSubmitting ? 'Processing...' : 'Continue to Payment'}
+              </Button>
+
+              <Button
+                variant="outlined"
+                fullWidth
+                size="large"
+                onClick={handleBack}
+                disabled={isSubmitting}
+                sx={{
+                  mt: 2,
+                  borderColor: THEME.colors.primary,
+                  color: THEME.colors.primary,
+                  '&:hover': {
+                    borderColor: THEME.colors.secondary,
+                    color: THEME.colors.secondary
+                  }
+                }}
+              >
+                Back to Summary
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Container>
   );
 } 

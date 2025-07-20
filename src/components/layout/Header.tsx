@@ -21,19 +21,24 @@ import {
 import { Menu as MenuIcon, ShoppingCart, Instagram, YouTube, WhatsApp } from '@mui/icons-material';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { BUSINESS_INFO, THEME } from '@/lib/constants';
+import { useCart } from '@/lib/CartContext';
 
 const INSTAGRAM_URL = 'https://www.instagram.com/fafresh.cultural.fashion/';
 
 const Header = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { items } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const isHomePage = pathname === '/';
+
+  const cartItemCount = items.reduce((total, item) => total + item.quantity, 0);
 
   useEffect(() => {
     setIsClient(true);
@@ -170,7 +175,18 @@ const Header = () => {
                   }
                 }}
               >
-                <Badge badgeContent={0} color="error">
+                <Badge 
+                  badgeContent={cartItemCount} 
+                  color="error"
+                  showZero={false}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      backgroundColor: THEME.colors.secondary,
+                      color: 'white',
+                      fontWeight: 600
+                    }
+                  }}
+                >
                   <ShoppingCart />
                 </Badge>
               </IconButton>
@@ -186,7 +202,18 @@ const Header = () => {
                 href="/cart"
                 sx={{ color: 'white', mr: 1 }}
               >
-                <Badge badgeContent={0} color="error">
+                <Badge 
+                  badgeContent={cartItemCount} 
+                  color="error"
+                  showZero={false}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      backgroundColor: THEME.colors.secondary,
+                      color: 'white',
+                      fontWeight: 600
+                    }
+                  }}
+                >
                   <ShoppingCart />
                 </Badge>
               </IconButton>

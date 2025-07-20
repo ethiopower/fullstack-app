@@ -1,317 +1,387 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Box,
   Container,
   Typography,
-  Paper,
-  Stack,
+  Card,
+  CardContent,
   Button,
+  Stack,
   Divider,
   Grid,
-  Stepper,
-  Step,
-  StepLabel,
-  CircularProgress,
-  Alert
+  Alert,
+  Chip
 } from '@mui/material';
-import {
-  CheckCircle as CheckCircleIcon,
-  AccessTime as TimeIcon,
-  LocalShipping as ShippingIcon,
-  Store as StoreIcon
-} from '@mui/icons-material';
-import Link from 'next/link';
-import { THEME, ROUTES } from '@/lib/constants';
+import { CheckCircle, Phone, Email, LocationOn, CalendarToday } from '@mui/icons-material';
+import { THEME, BUSINESS_INFO } from '@/lib/constants';
 
-type OrderDetails = {
-  id: string;
+type Order = {
+  orderId: string;
   customer: {
     firstName: string;
     lastName: string;
     email: string;
     phone: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
   };
-  items: Array<{
-    gender: string;
-    occasion: string;
-    design: any;
-    measurements: any;
-  }>;
+  items: any[];
+  people: any[];
   subtotal: number;
-  deposit: number;
+  tax: number;
+  total: number;
   status: string;
-  orderDate: string;
+  paymentStatus: string;
+  timestamp: string;
 };
 
-const orderSteps = [
-  'Order Placed',
-  'Processing',
-  'Ready for Pickup',
-  'Completed'
-];
-
-export default function OrderConfirmationPage({
-  params
-}: {
-  params: { orderId: string }
-}) {
-  const [order, setOrder] = useState<OrderDetails | null>(null);
+export default function OrderConfirmationPage() {
+  const params = useParams();
+  const router = useRouter();
+  const orderId = params.orderId as string;
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const response = await fetch(`/api/orders/${params.orderId}`);
+        const response = await fetch(`/api/orders/${orderId}`);
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch order details');
+          throw new Error('Order not found');
         }
-        const data = await response.json();
-        setOrder(data);
-      } catch (err) {
-        setError('Failed to load order details. Please try again later.');
+
+        const orderData = await response.json();
+        setOrder(orderData);
+      } catch (error) {
+        console.error('Error fetching order:', error);
+        setError('Order not found. Please check your order ID.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchOrder();
-  }, [params.orderId]);
+    if (orderId) {
+      fetchOrder();
+    }
+  }, [orderId]);
+
+  const handleBackToHome = () => {
+    router.push('/');
+  };
+
+  const handleNewOrder = () => {
+    router.push('/customize/step0');
+  };
 
   if (loading) {
     return (
-      <Box
-        sx={{
-          minHeight: '70vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="md" sx={{ py: 8 }}>
+        <Typography variant="h4" textAlign="center">
+          Loading order details...
+        </Typography>
+      </Container>
     );
   }
 
   if (error || !order) {
     return (
-      <Container maxWidth="md" sx={{ py: 8, minHeight: '70vh', mt: 8 }}>
-        <Alert severity="error" sx={{ mb: 4 }}>
+      <Container maxWidth="md" sx={{ py: 8 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
           {error || 'Order not found'}
         </Alert>
-        <Button
-          component={Link}
-          href={ROUTES.home}
-          variant="contained"
-          sx={{
-            bgcolor: THEME.colors.primary,
-            color: 'white',
-            '&:hover': {
-              bgcolor: THEME.colors.secondary
-            }
-          }}
-        >
-          Return Home
+        <Button variant="contained" onClick={handleBackToHome}>
+          Back to Home
         </Button>
       </Container>
     );
   }
 
-  const orderStatus = orderSteps.indexOf(order.status);
+  const estimatedDelivery = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000); // 3 weeks from now
 
   return (
-    <Box sx={{ py: THEME.spacing.section, minHeight: '100vh', mt: 8 }}>
-      <Container maxWidth="lg">
-        {/* Success Message */}
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <CheckCircleIcon
-            sx={{
-              fontSize: 64,
-              color: THEME.colors.primary,
-              mb: 2
-            }}
-          />
-          <Typography
-            variant="h1"
-            sx={{
-              fontSize: { xs: '2rem', md: '2.5rem' },
-              fontFamily: THEME.typography.headingFamily,
-              fontWeight: 500,
-              mb: 2
-            }}
-          >
-            Order Confirmed!
-          </Typography>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            Thank you for choosing Fafresh Fashion
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Order #{order.id}
-          </Typography>
-        </Box>
+    <Container maxWidth="lg" sx={{ py: 8 }}>
+      {/* Success Header */}
+      <Box textAlign="center" sx={{ mb: 6 }}>
+        <CheckCircle 
+          sx={{ 
+            fontSize: 80, 
+            color: THEME.colors.primary, 
+            mb: 2 
+          }} 
+        />
+        <Typography
+          variant="h1"
+          sx={{
+            fontSize: { xs: '2rem', md: '2.5rem' },
+            fontFamily: THEME.typography.headingFamily,
+            fontWeight: 500,
+            mb: 2,
+            color: 'text.primary'
+          }}
+        >
+          Order Confirmed!
+        </Typography>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: 'text.secondary',
+            fontFamily: THEME.typography.headingFamily
+          }}
+        >
+          Thank you for your custom order. We'll start working on it right away.
+        </Typography>
+      </Box>
 
-        <Grid container spacing={6}>
-          {/* Order Details */}
-          <Grid item xs={12} md={8}>
-            {/* Order Status */}
-            <Paper elevation={0} sx={{ p: 4, mb: 4 }}>
-              <Typography variant="h6" gutterBottom>
-                Order Status
-              </Typography>
-              <Stepper activeStep={orderStatus} alternativeLabel>
-                {orderSteps.map((label) => (
-                  <Step key={label}>
-                    <StepLabel>{label}</StepLabel>
-                  </Step>
-                ))}
-              </Stepper>
-            </Paper>
+      <Grid container spacing={4}>
+        {/* Order Details */}
+        <Grid item xs={12} md={8}>
+          <Stack spacing={3}>
+            {/* Order Information */}
+            <Card elevation={2}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Order Information
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Order ID:</Typography>
+                    <Typography variant="h6" sx={{ color: THEME.colors.primary }}>
+                      {order.orderId}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Order Date:</Typography>
+                    <Typography>
+                      {new Date(order.timestamp).toLocaleDateString()}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Stack direction="row" spacing={1}>
+                      <Chip 
+                        label={order.status} 
+                        color="success" 
+                        variant="outlined"
+                      />
+                      <Chip 
+                        label={order.paymentStatus} 
+                        color="primary" 
+                        variant="outlined"
+                      />
+                    </Stack>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            {/* Customer Information */}
+            <Card elevation={2}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Customer Information
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Name:</Typography>
+                    <Typography>{order.customer.firstName} {order.customer.lastName}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Email:</Typography>
+                    <Typography>{order.customer.email}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Phone:</Typography>
+                    <Typography>{order.customer.phone}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Address:</Typography>
+                    <Typography>
+                      {order.customer.address}<br />
+                      {order.customer.city}, {order.customer.state} {order.customer.zipCode}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
 
             {/* Order Items */}
-            <Paper elevation={0} sx={{ p: 4 }}>
-              <Typography variant="h6" gutterBottom>
-                Order Details
-              </Typography>
-              <Stack spacing={3}>
-                {order.items.map((item, index) => (
-                  <Box key={index}>
-                    <Grid container spacing={3}>
-                      <Grid item xs={12}>
-                        <Typography variant="subtitle1" fontWeight="bold">
-                          Custom {item.gender}'s {item.occasion} Outfit
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Design: {item.design.name}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                    {index < order.items.length - 1 && (
-                      <Divider sx={{ mt: 2 }} />
-                    )}
-                  </Box>
-                ))}
-              </Stack>
-            </Paper>
-          </Grid>
-
-          {/* Order Summary */}
-          <Grid item xs={12} md={4}>
-            <Stack spacing={4}>
-              {/* Payment Summary */}
-              <Paper elevation={0} sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Payment Summary
+            <Card elevation={2}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Order Items ({order.items.length})
                 </Typography>
+                
                 <Stack spacing={2}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <Typography>Subtotal</Typography>
+                  {order.items.map((item, index) => {
+                    const person = order.people.find(p => p.id === item.personId);
+                    return (
+                      <Box 
+                        key={item.personId} 
+                        sx={{ 
+                          p: 2, 
+                          border: 1, 
+                          borderColor: 'divider', 
+                          borderRadius: 2 
+                        }}
+                      >
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                              {person?.name || 'Unknown'}
+                            </Typography>
+                            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                              <Chip label={item.gender} size="small" />
+                              <Chip label={item.occasion} size="small" variant="outlined" />
+                            </Stack>
+                          </Grid>
+                          <Grid item xs={12} sm={6} textAlign="right">
+                            <Typography variant="h6" sx={{ color: THEME.colors.primary }}>
+                              $299.00
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              </CardContent>
+            </Card>
+          </Stack>
+        </Grid>
+
+        {/* Summary Sidebar */}
+        <Grid item xs={12} md={4}>
+          <Stack spacing={3}>
+            {/* Order Total */}
+            <Card elevation={3} sx={{ border: `2px solid ${THEME.colors.primary}` }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Order Total
+                </Typography>
+                
+                <Stack spacing={2}>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography>Subtotal:</Typography>
                     <Typography>${order.subtotal.toFixed(2)}</Typography>
                   </Box>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <Typography>Deposit Paid</Typography>
-                    <Typography>${order.deposit.toFixed(2)}</Typography>
+                  
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography>Tax:</Typography>
+                    <Typography>${order.tax.toFixed(2)}</Typography>
                   </Box>
+                  
                   <Divider />
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <Typography fontWeight="bold">Balance Due</Typography>
-                    <Typography fontWeight="bold">
-                      ${(order.subtotal - order.deposit).toFixed(2)}
+                  
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Total Paid:
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: THEME.colors.primary }}>
+                      ${order.total.toFixed(2)}
                     </Typography>
                   </Box>
                 </Stack>
-              </Paper>
+              </CardContent>
+            </Card>
 
-              {/* Next Steps */}
-              <Paper elevation={0} sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Next Steps
+            {/* Next Steps */}
+            <Card elevation={2}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  What's Next?
                 </Typography>
-                <Stack spacing={3}>
-                  <Box>
-                    <Stack direction="row" spacing={2} alignItems="center">
-                      <TimeIcon sx={{ color: THEME.colors.primary }} />
-                      <Typography variant="subtitle1">Processing Time</Typography>
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Your order will be ready in approximately 3 weeks
-                    </Typography>
+                
+                <Stack spacing={2}>
+                  <Box display="flex" alignItems="center" gap={2}>
+                    <CalendarToday sx={{ color: THEME.colors.primary }} />
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        Estimated Completion
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {estimatedDelivery.toLocaleDateString()}
+                      </Typography>
+                    </Box>
                   </Box>
-                  <Box>
-                    <Stack direction="row" spacing={2} alignItems="center">
-                      <ShippingIcon sx={{ color: THEME.colors.primary }} />
-                      <Typography variant="subtitle1">Order Updates</Typography>
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      We'll send updates to {order.customer.email}
-                    </Typography>
+                  
+                  <Box display="flex" alignItems="center" gap={2}>
+                    <LocationOn sx={{ color: THEME.colors.primary }} />
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        Pickup Location
+                      </Typography>
+                                             <Typography variant="body2" color="text.secondary">
+                         {BUSINESS_INFO.address.full}
+                       </Typography>
+                    </Box>
                   </Box>
-                  <Box>
-                    <Stack direction="row" spacing={2} alignItems="center">
-                      <StoreIcon sx={{ color: THEME.colors.primary }} />
-                      <Typography variant="subtitle1">Store Pickup</Typography>
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      We'll notify you when your order is ready for pickup
-                    </Typography>
+                  
+                  <Box display="flex" alignItems="center" gap={2}>
+                    <Phone sx={{ color: THEME.colors.primary }} />
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        Contact Us
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {BUSINESS_INFO.phone}
+                      </Typography>
+                    </Box>
                   </Box>
                 </Stack>
-              </Paper>
 
-              {/* Action Buttons */}
-              <Stack spacing={2}>
-                <Button
-                  component={Link}
-                  href={ROUTES.shop}
-                  variant="contained"
-                  fullWidth
-                  sx={{
-                    bgcolor: THEME.colors.primary,
-                    color: 'white',
-                    '&:hover': {
-                      bgcolor: THEME.colors.secondary
-                    }
-                  }}
-                >
-                  Continue Shopping
-                </Button>
-                <Button
-                  component={Link}
-                  href={ROUTES.contact}
-                  variant="outlined"
-                  fullWidth
-                  sx={{
-                    borderColor: THEME.colors.primary,
-                    color: THEME.colors.primary,
-                    '&:hover': {
-                      borderColor: THEME.colors.secondary,
-                      color: THEME.colors.secondary
-                    }
-                  }}
-                >
-                  Contact Us
-                </Button>
-              </Stack>
+                <Alert severity="info" sx={{ mt: 3 }}>
+                  <Typography variant="body2">
+                    We'll email you when your order is ready for pickup!
+                  </Typography>
+                </Alert>
+              </CardContent>
+            </Card>
+
+            {/* Action Buttons */}
+            <Stack spacing={2}>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={handleNewOrder}
+                sx={{
+                  bgcolor: THEME.colors.primary,
+                  color: 'white',
+                  py: 2,
+                  '&:hover': {
+                    bgcolor: THEME.colors.secondary
+                  }
+                }}
+              >
+                Place Another Order
+              </Button>
+              
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={handleBackToHome}
+                sx={{
+                  borderColor: THEME.colors.primary,
+                  color: THEME.colors.primary,
+                  '&:hover': {
+                    borderColor: THEME.colors.secondary,
+                    color: THEME.colors.secondary
+                  }
+                }}
+              >
+                Back to Home
+              </Button>
             </Stack>
-          </Grid>
+          </Stack>
         </Grid>
-      </Container>
-    </Box>
+      </Grid>
+    </Container>
   );
 } 

@@ -188,6 +188,72 @@ export const PRODUCT_DESIGNS = {
         basePrice: 599.99
       }
     ]
+  },
+  children: {
+    traditional: [
+      {
+        id: "ct1",
+        name: "Traditional Children's Outfit",
+        description: "Beautiful traditional wear designed for children",
+        images: [
+          {
+            src: "/images/instagram/imgi_1_278193034_380033810648589_636440153269846173_n.jpg",
+            alt: "Traditional Children's Outfit - Front View",
+            width: 800,
+            height: 1200
+          },
+          {
+            src: "/images/instagram/imgi_2_284916394_974871336560236_5099521758296028136_n.webp",
+            alt: "Traditional Children's Outfit - Detail View",
+            width: 800,
+            height: 1200
+          }
+        ],
+        basePrice: 149.99
+      },
+      {
+        id: "ct2",
+        name: "Modern Kids Traditional Wear",
+        description: "Contemporary children's traditional attire",
+        images: [
+          {
+            src: "/images/instagram/imgi_4_278292359_1873496682850196_1929999068388655626_n.webp",
+            alt: "Modern Kids Traditional Wear - Front View",
+            width: 800,
+            height: 1200
+          },
+          {
+            src: "/images/instagram/imgi_5_278430911_5220485997974230_5223933189179464051_n.webp",
+            alt: "Modern Kids Traditional Wear - Detail View",
+            width: 800,
+            height: 1200
+          }
+        ],
+        basePrice: 179.99
+      }
+    ],
+    special: [
+      {
+        id: "cs1",
+        name: "Children's Special Occasion Outfit",
+        description: "Perfect for special events and celebrations",
+        images: [
+          {
+            src: "/images/instagram/imgi_6_278048893_1088525645049426_4195131893231909479_n.webp",
+            alt: "Children's Special Occasion Outfit - Front View",
+            width: 800,
+            height: 1200
+          },
+          {
+            src: "/images/instagram/imgi_7_278407559_1005903230031551_1377516088203914242_n.webp",
+            alt: "Children's Special Occasion Outfit - Detail View",
+            width: 800,
+            height: 1200
+          }
+        ],
+        basePrice: 199.99
+      }
+    ]
   }
 } as const;
 

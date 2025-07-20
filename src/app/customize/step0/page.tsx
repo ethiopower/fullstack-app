@@ -16,7 +16,8 @@ import {
   Radio,
   IconButton,
   Box,
-  Chip
+  Chip,
+  Divider
 } from '@mui/material';
 import { Add as AddIcon, Remove as RemoveIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
@@ -26,22 +27,28 @@ interface Person {
   id: string;
   name: string;
   gender: 'men' | 'women' | 'children';
+  ageGroup: 'adult' | 'child';
 }
 
 export default function OrderPlanningPage() {
   const router = useRouter();
   const [people, setPeople] = useState<Person[]>([]);
-  const [newPerson, setNewPerson] = useState({ name: '', gender: 'men' as const });
+  const [newPerson, setNewPerson] = useState({ 
+    name: '', 
+    gender: 'men' as 'men' | 'women',
+    ageGroup: 'adult' as 'adult' | 'child'
+  });
 
   const addPerson = () => {
     if (newPerson.name.trim()) {
       const person: Person = {
         id: Date.now().toString(),
         name: newPerson.name.trim(),
-        gender: newPerson.gender
+        gender: newPerson.ageGroup === 'child' ? 'children' : newPerson.gender,
+        ageGroup: newPerson.ageGroup
       };
       setPeople([...people, person]);
-      setNewPerson({ name: '', gender: 'men' });
+      setNewPerson({ name: '', gender: 'men', ageGroup: 'adult' });
     }
   };
 
@@ -58,6 +65,16 @@ export default function OrderPlanningPage() {
       router.push(`/customize/step1?personId=${people[0].id}`);
     }
   };
+
+  const getDisplayGender = (person: Person) => {
+    if (person.ageGroup === 'child') {
+      return `Child (${person.gender === 'men' ? 'Boy' : 'Girl'})`;
+    }
+    return person.gender === 'men' ? 'Men' : 'Women';
+  };
+
+  const adultCount = people.filter(p => p.ageGroup === 'adult').length;
+  const childCount = people.filter(p => p.ageGroup === 'child').length;
 
   return (
     <>
@@ -102,15 +119,53 @@ export default function OrderPlanningPage() {
                 placeholder="Enter person's name"
               />
               
+              {/* Age Group Selection */}
               <FormControl component="fieldset">
-                <FormLabel component="legend">Category</FormLabel>
+                <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1 }}>
+                  Age Group
+                </FormLabel>
                 <RadioGroup
-                  value={newPerson.gender}
-                  onChange={(e) => setNewPerson({...newPerson, gender: e.target.value as any})}
+                  value={newPerson.ageGroup}
+                  onChange={(e) => setNewPerson({
+                    ...newPerson, 
+                    ageGroup: e.target.value as 'adult' | 'child',
+                    gender: e.target.value === 'child' ? 'men' : newPerson.gender
+                  })}
+                  sx={{ flexDirection: 'row' }}
                 >
-                  <FormControlLabel value="men" control={<Radio />} label="Men's" />
-                  <FormControlLabel value="women" control={<Radio />} label="Women's" />
-                  <FormControlLabel value="children" control={<Radio />} label="Children's" />
+                  <FormControlLabel 
+                    value="adult" 
+                    control={<Radio sx={{ color: THEME.colors.primary }} />} 
+                    label="Adult" 
+                  />
+                  <FormControlLabel 
+                    value="child" 
+                    control={<Radio sx={{ color: THEME.colors.primary }} />} 
+                    label="Child" 
+                  />
+                </RadioGroup>
+              </FormControl>
+
+              {/* Gender Selection */}
+              <FormControl component="fieldset">
+                <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1 }}>
+                  {newPerson.ageGroup === 'child' ? 'Child Gender' : 'Gender'}
+                </FormLabel>
+                                  <RadioGroup
+                    value={newPerson.gender}
+                    onChange={(e) => setNewPerson({...newPerson, gender: e.target.value as 'men' | 'women'})}
+                    sx={{ flexDirection: 'row' }}
+                  >
+                  <FormControlLabel 
+                    value="men" 
+                    control={<Radio sx={{ color: THEME.colors.primary }} />} 
+                    label={newPerson.ageGroup === 'child' ? 'Boy' : 'Male'} 
+                  />
+                  <FormControlLabel 
+                    value="women" 
+                    control={<Radio sx={{ color: THEME.colors.primary }} />} 
+                    label={newPerson.ageGroup === 'child' ? 'Girl' : 'Female'} 
+                  />
                 </RadioGroup>
               </FormControl>
               
@@ -136,6 +191,29 @@ export default function OrderPlanningPage() {
             <Typography variant="h6" sx={{ mb: 3, fontFamily: THEME.typography.headingFamily }}>
               Order Summary ({people.length} {people.length === 1 ? 'person' : 'people'})
             </Typography>
+
+            {/* Category Counts */}
+            {people.length > 0 && (
+              <Box sx={{ mb: 3 }}>
+                <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+                  {adultCount > 0 && (
+                    <Chip 
+                      label={`${adultCount} Adult${adultCount > 1 ? 's' : ''}`}
+                      color="primary"
+                      variant="outlined"
+                    />
+                  )}
+                  {childCount > 0 && (
+                    <Chip 
+                      label={`${childCount} Child${childCount > 1 ? 'ren' : ''}`}
+                      color="secondary"
+                      variant="outlined"
+                    />
+                  )}
+                </Stack>
+                <Divider sx={{ mb: 2 }} />
+              </Box>
+            )}
             
             {people.length === 0 ? (
               <Typography color="text.secondary">No people added yet</Typography>
@@ -151,7 +229,8 @@ export default function OrderPlanningPage() {
                       p: 2,
                       border: '1px solid',
                       borderColor: 'divider',
-                      borderRadius: 1
+                      borderRadius: 1,
+                      bgcolor: person.ageGroup === 'child' ? 'rgba(156, 39, 176, 0.05)' : 'rgba(26, 77, 46, 0.05)'
                     }}
                   >
                     <Stack direction="row" spacing={2} alignItems="center">
@@ -160,8 +239,9 @@ export default function OrderPlanningPage() {
                       </Typography>
                       <Chip 
                         size="small" 
-                        label={person.gender.charAt(0).toUpperCase() + person.gender.slice(1)}
-                        color="primary"
+                        label={getDisplayGender(person)}
+                        color={person.ageGroup === 'child' ? 'secondary' : 'primary'}
+                        variant="outlined"
                       />
                     </Stack>
                     <IconButton
@@ -175,39 +255,31 @@ export default function OrderPlanningPage() {
                 ))}
               </Stack>
             )}
+
+            {people.length > 0 && (
+              <Box sx={{ mt: 4 }}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  onClick={handleNext}
+                  sx={{
+                    bgcolor: THEME.colors.primary,
+                    color: 'white',
+                    py: 2,
+                    fontSize: '1.1rem',
+                    '&:hover': {
+                      bgcolor: THEME.colors.secondary
+                    }
+                  }}
+                >
+                  Start Designing ({people.length} {people.length === 1 ? 'Person' : 'People'})
+                </Button>
+              </Box>
+            )}
           </Card>
         </Grid>
       </Grid>
-
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        justifyContent="center"
-        sx={{ mt: 6 }}
-      >
-        <Button
-          variant="contained"
-          onClick={handleNext}
-          disabled={people.length === 0}
-          sx={{
-            bgcolor: THEME.colors.primary,
-            color: 'white',
-            px: 6,
-            py: 1.5,
-            fontSize: '1rem',
-            fontWeight: 500,
-            '&:hover': {
-              bgcolor: THEME.colors.secondary
-            },
-            '&.Mui-disabled': {
-              bgcolor: 'action.disabledBackground',
-              color: 'action.disabled'
-            }
-          }}
-        >
-          Start Customizing ({people.length} {people.length === 1 ? 'order' : 'orders'})
-        </Button>
-      </Stack>
     </>
   );
 } 

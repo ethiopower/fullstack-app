@@ -9,6 +9,9 @@ interface CartItem {
   quantity: number;
   image: string;
   size?: string;
+  color?: string;
+  category?: string;
+  productId?: string;
   customizations?: Record<string, any>;
 }
 
