@@ -22,6 +22,7 @@ import {
 import { Add as AddIcon, Remove as RemoveIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { THEME } from '@/lib/constants';
+import { useOrder } from '@/lib/OrderContext';
 
 interface Person {
   id: string;
@@ -32,14 +33,16 @@ interface Person {
 
 export default function OrderPlanningPage() {
   const router = useRouter();
-  const [people, setPeople] = useState<Person[]>([]);
+  const { setPeople } = useOrder();
+  const [localPeople, setLocalPeople] = useState<Person[]>([]);
   const [newPerson, setNewPerson] = useState({ 
     name: '', 
     gender: 'men' as 'men' | 'women',
     ageGroup: 'adult' as 'adult' | 'child'
   });
 
-  const addPerson = () => {
+  const addPerson = (e?: React.MouseEvent) => {
+    e?.preventDefault();
     if (newPerson.name.trim()) {
       const person: Person = {
         id: Date.now().toString(),
@@ -47,22 +50,28 @@ export default function OrderPlanningPage() {
         gender: newPerson.ageGroup === 'child' ? 'children' : newPerson.gender,
         ageGroup: newPerson.ageGroup
       };
-      setPeople([...people, person]);
+      setLocalPeople([...localPeople, person]);
       setNewPerson({ name: '', gender: 'men', ageGroup: 'adult' });
     }
   };
 
   const removePerson = (id: string) => {
-    setPeople(people.filter(p => p.id !== id));
+    setLocalPeople(localPeople.filter(p => p.id !== id));
   };
 
-  const handleNext = () => {
-    if (people.length > 0) {
-      // Store order details in sessionStorage
-      sessionStorage.setItem('orderPeople', JSON.stringify(people));
-      sessionStorage.setItem('currentPersonIndex', '0');
-      // Navigate to design selection for first person
-      router.push(`/customize/step1?personId=${people[0].id}`);
+  const handleNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (localPeople.length > 0) {
+      setPeople(localPeople);
+      router.push(`/customize/step2?personId=${localPeople[0].id}`);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addPerson();
     }
   };
 
@@ -73,11 +82,11 @@ export default function OrderPlanningPage() {
     return person.gender === 'men' ? 'Men' : 'Women';
   };
 
-  const adultCount = people.filter(p => p.ageGroup === 'adult').length;
-  const childCount = people.filter(p => p.ageGroup === 'child').length;
+  const adultCount = localPeople.filter(p => p.ageGroup === 'adult').length;
+  const childCount = localPeople.filter(p => p.ageGroup === 'child').length;
 
   return (
-    <>
+    <form onSubmit={(e) => e.preventDefault()}>
       <Typography
         variant="h1"
         sx={{
@@ -117,6 +126,7 @@ export default function OrderPlanningPage() {
                 value={newPerson.name}
                 onChange={(e) => setNewPerson({...newPerson, name: e.target.value})}
                 placeholder="Enter person's name"
+                onKeyPress={handleKeyPress}
               />
               
               {/* Age Group Selection */}
@@ -189,11 +199,11 @@ export default function OrderPlanningPage() {
         <Grid item xs={12} md={6}>
           <Card elevation={0} sx={{ bgcolor: 'background.paper', p: 3 }}>
             <Typography variant="h6" sx={{ mb: 3, fontFamily: THEME.typography.headingFamily }}>
-              Order Summary ({people.length} {people.length === 1 ? 'person' : 'people'})
+              Order Summary ({localPeople.length} {localPeople.length === 1 ? 'person' : 'people'})
             </Typography>
 
             {/* Category Counts */}
-            {people.length > 0 && (
+            {localPeople.length > 0 && (
               <Box sx={{ mb: 3 }}>
                 <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
                   {adultCount > 0 && (
@@ -215,11 +225,11 @@ export default function OrderPlanningPage() {
               </Box>
             )}
             
-            {people.length === 0 ? (
+            {localPeople.length === 0 ? (
               <Typography color="text.secondary">No people added yet</Typography>
             ) : (
               <Stack spacing={2}>
-                {people.map((person) => (
+                {localPeople.map((person) => (
                   <Box
                     key={person.id}
                     sx={{
@@ -256,7 +266,7 @@ export default function OrderPlanningPage() {
               </Stack>
             )}
 
-            {people.length > 0 && (
+            {localPeople.length > 0 && (
               <Box sx={{ mt: 4 }}>
                 <Button
                   variant="contained"
@@ -273,13 +283,13 @@ export default function OrderPlanningPage() {
                     }
                   }}
                 >
-                  Start Designing ({people.length} {people.length === 1 ? 'Person' : 'People'})
+                  Start Designing ({localPeople.length} {localPeople.length === 1 ? 'Person' : 'People'})
                 </Button>
               </Box>
             )}
           </Card>
         </Grid>
       </Grid>
-    </>
+    </form>
   );
 } 

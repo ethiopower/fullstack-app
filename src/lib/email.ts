@@ -7,11 +7,16 @@ import {
   getNewsletterTemplate
 } from './email-templates';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error('SENDGRID_API_KEY is not defined');
-}
+// Check if SendGrid API key is available
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const EMAIL_ENABLED = !!SENDGRID_API_KEY;
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+if (EMAIL_ENABLED) {
+  sgMail.setApiKey(SENDGRID_API_KEY);
+  console.log('✅ SendGrid email service initialized');
+} else {
+  console.warn('⚠️  SENDGRID_API_KEY not found. Email will be logged to console only.');
+}
 
 interface OrderConfirmationData {
   orderId: string;
@@ -49,73 +54,131 @@ interface NewsletterData {
   content: string;
 }
 
-export async function sendOrderConfirmation(data: OrderConfirmationData): Promise<void> {
-  const html = getOrderConfirmationTemplate({
-    orderId: data.orderId,
-    customerName: data.customerName,
-    items: data.items,
-    subtotal: data.subtotal,
-    deposit: data.deposit
-  });
+export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
+  const subject = `Order Confirmation - ${data.orderId} | Fafresh Cultural Fashion`;
+  const htmlContent = getOrderConfirmationTemplate(data);
+  
+  if (EMAIL_ENABLED) {
+    try {
+      const msg = {
+        to: data.customerEmail,
+        from: {
+          email: process.env.SENDGRID_FROM_EMAIL || 'orders@fafresh.com',
+          name: 'Fafresh Cultural Fashion'
+        },
+        subject,
+        html: htmlContent,
+      };
 
-  await sgMail.send({
-    to: data.customerEmail,
-    from: BUSINESS_INFO.contactEmail,
-    subject: 'Order Confirmation - Fafresh Fashion',
-    html
-  });
+      await sgMail.send(msg);
+      console.log(`✅ Order confirmation email sent to ${data.customerEmail}`);
+      return { success: true };
+    } catch (error) {
+      console.error('SendGrid error:', error);
+      throw error;
+    }
+  } else {
+    // Fallback: Log email content
+    console.log('📧 EMAIL (SENDGRID NOT CONFIGURED):');
+    console.log(`To: ${data.customerEmail}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Content: ${htmlContent}`);
+    return { success: true, note: 'Email logged to console (SendGrid not configured)' };
+  }
 }
 
-export async function sendOrderStatusUpdate(data: OrderStatusUpdateData): Promise<void> {
-  const html = getOrderStatusUpdateTemplate({
-    orderId: data.orderId,
-    customerName: data.customerName,
-    status: data.status,
-    message: data.message
-  });
+export async function sendOrderStatusUpdateEmail(data: OrderStatusUpdateData) {
+  const subject = `Order Update - ${data.orderId} | Fafresh Cultural Fashion`;
+  const htmlContent = getOrderStatusUpdateTemplate(data);
+  
+  if (EMAIL_ENABLED) {
+    try {
+      const msg = {
+        to: data.customerEmail,
+        from: {
+          email: process.env.SENDGRID_FROM_EMAIL || 'orders@fafresh.com',
+          name: 'Fafresh Cultural Fashion'
+        },
+        subject,
+        html: htmlContent,
+      };
 
-  await sgMail.send({
-    to: data.customerEmail,
-    from: BUSINESS_INFO.contactEmail,
-    subject: 'Order Status Update - Fafresh Fashion',
-    html
-  });
+      await sgMail.send(msg);
+      console.log(`✅ Order status email sent to ${data.customerEmail}`);
+      return { success: true };
+    } catch (error) {
+      console.error('SendGrid error:', error);
+      throw error;
+    }
+  } else {
+    console.log('📧 EMAIL (SENDGRID NOT CONFIGURED):');
+    console.log(`To: ${data.customerEmail}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Content: ${htmlContent}`);
+    return { success: true, note: 'Email logged to console (SendGrid not configured)' };
+  }
 }
 
-export async function sendContactFormNotification(data: ContactFormData): Promise<void> {
-  const html = getContactFormTemplate(data);
+export async function sendContactFormEmail(data: ContactFormData) {
+  const subject = `New Contact Form Submission from ${data.name}`;
+  const htmlContent = getContactFormTemplate(data);
+  
+  if (EMAIL_ENABLED) {
+    try {
+      const msg = {
+        to: process.env.SENDGRID_ADMIN_EMAIL || 'info@fafresh.com',
+        from: {
+          email: process.env.SENDGRID_FROM_EMAIL || 'contact@fafresh.com',
+          name: 'Fafresh Website'
+        },
+        subject,
+        html: htmlContent,
+      };
 
-  await sgMail.send({
-    to: BUSINESS_INFO.contactEmail,
-    from: BUSINESS_INFO.contactEmail,
-    subject: 'New Contact Form Submission',
-    html
-  });
-
-  // Send confirmation to customer
-  await sgMail.send({
-    to: data.email,
-    from: BUSINESS_INFO.contactEmail,
-    subject: 'Thank You for Contacting Fafresh Fashion',
-    html: getOrderStatusUpdateTemplate({
-      orderId: '',
-      customerName: data.name,
-      status: 'Message Received',
-      message: 'Thank you for contacting us. We\'ll get back to you shortly.'
-    })
-  });
+      await sgMail.send(msg);
+      console.log(`✅ Contact form email sent from ${data.email}`);
+      return { success: true };
+    } catch (error) {
+      console.error('SendGrid error:', error);
+      throw error;
+    }
+  } else {
+    console.log('📧 EMAIL (SENDGRID NOT CONFIGURED):');
+    console.log(`To: info@fafresh.com`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Content: ${htmlContent}`);
+    return { success: true, note: 'Email logged to console (SendGrid not configured)' };
+  }
 }
 
-export async function sendNewsletter(data: NewsletterData): Promise<void> {
-  const html = getNewsletterTemplate({
-    customerName: data.customerName,
-    content: data.content
-  });
+export async function sendNewsletterEmail(data: NewsletterData) {
+  const subject = 'Fafresh Cultural Fashion Newsletter';
+  const htmlContent = getNewsletterTemplate(data);
+  
+  if (EMAIL_ENABLED) {
+    try {
+      const msg = {
+        to: data.customerEmail,
+        from: {
+          email: process.env.SENDGRID_FROM_EMAIL || 'newsletter@fafresh.com',
+          name: 'Fafresh Cultural Fashion'
+        },
+        subject,
+        html: htmlContent,
+      };
 
-  await sgMail.send({
-    to: data.customerEmail,
-    from: BUSINESS_INFO.contactEmail,
-    subject: 'Latest Updates from Fafresh Fashion',
-    html
-  });
+      await sgMail.send(msg);
+      console.log(`✅ Newsletter sent to ${data.customerEmail}`);
+      return { success: true };
+    } catch (error) {
+      console.error('SendGrid error:', error);
+      throw error;
+    }
+  } else {
+    console.log('📧 EMAIL (SENDGRID NOT CONFIGURED):');
+    console.log(`To: ${data.customerEmail}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Content: ${htmlContent}`);
+    return { success: true, note: 'Email logged to console (SendGrid not configured)' };
+  }
 } 

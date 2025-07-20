@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useCart } from '@/lib/CartContext';
 import {
   Box,
   Container,
@@ -49,6 +50,7 @@ declare global {
 
 export default function PaymentPage() {
   const router = useRouter();
+  const { clearCart } = useCart();
   const [pendingOrder, setPendingOrder] = useState<PendingOrder | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState('');
@@ -192,12 +194,40 @@ export default function PaymentPage() {
         const paymentResult = await response.json();
 
         if (paymentResult.success) {
-          sessionStorage.removeItem('pendingOrder');
-          sessionStorage.removeItem('orderSummary');
-          sessionStorage.removeItem('customerInfo');
-          sessionStorage.removeItem('orderData');
-          sessionStorage.removeItem('orderPeople');
-          sessionStorage.removeItem('cartOrderSummary');
+          // Clear all cart and session data after successful payment
+          clearCart();
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('pendingOrder');
+            sessionStorage.removeItem('orderSummary');
+            sessionStorage.removeItem('customerInfo');
+            sessionStorage.removeItem('orderData');
+            sessionStorage.removeItem('orderPeople');
+            sessionStorage.removeItem('cartOrderSummary');
+            sessionStorage.removeItem('people');
+            sessionStorage.removeItem('currentPersonIndex');
+            localStorage.removeItem('cart');
+            localStorage.removeItem('cart-items');
+            // Force cart update
+            window.dispatchEvent(new Event('storage'));
+          }
+          
+          // Send order confirmation email
+          try {
+            await fetch('/api/send-confirmation-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderId: pendingOrder.orderId,
+                customerEmail: pendingOrder.customerInfo?.email || 'customer@example.com',
+                customerName: `${pendingOrder.customerInfo?.firstName || 'Customer'} ${pendingOrder.customerInfo?.lastName || ''}`,
+                orderTotal: paymentResult.amount || Math.round(pendingOrder.orderSummary?.total * 100) || 0,
+                trackingUrl: `${window.location.origin}/order-tracking/${pendingOrder.orderId}`
+              })
+            });
+            console.log('✅ Order confirmation email sent');
+          } catch (error) {
+            console.error('Failed to send confirmation email:', error);
+          }
 
           router.push(`/order-confirmation/${pendingOrder.orderId}`);
         } else {

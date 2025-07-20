@@ -36,40 +36,58 @@ export const squareOrders = {
       size?: string;
       color?: string;
       customizations?: any;
+      personId?: string;
+    }>;
+    people?: Array<{
+      id: string;
+      name: string;
+      category: string;
+      gender: string;
+      measurements: any;
     }>;
     total: number;
   }) {
     try {
       // Prepare line items for Square
-      const lineItems: SquareOrderItem[] = orderData.items.map(item => ({
-        name: item.name,
-        quantity: item.quantity.toString(),
-        base_price_money: {
-          amount: Math.round(item.price * 100), // Convert to cents
-          currency: 'USD'
-        },
-        variation_name: item.size || item.color || undefined,
-        metadata: {
-          size: item.size || '',
-          color: item.color || '',
-          customizations: JSON.stringify(item.customizations || {})
-        }
-      }));
+             const lineItems: SquareOrderItem[] = orderData.items.map(item => ({
+         name: item.name,
+         quantity: item.quantity.toString(),
+         base_price_money: {
+           amount: Math.round(item.price * 100), // Convert to cents
+           currency: 'USD'
+         },
+         variation_name: item.size || item.color || undefined,
+         metadata: {
+           size: item.size || '',
+           color: item.color || '',
+           person_id: item.personId || 'default',
+           customizations: JSON.stringify(item.customizations || {})
+         }
+       }));
 
-      const squareOrderData: SquareOrderRequest = {
-        location_id: squarecreds.locationId,
-        order: {
-          location_id: squarecreds.locationId, // Square API requires location_id in the order object too
-          reference_id: orderData.orderId,
-          line_items: lineItems,
-          metadata: {
-            customer_email: orderData.customerEmail,
-            order_type: 'custom_fashion',
-            created_at: new Date().toISOString()
-          }
-        },
-        idempotency_key: `order-${orderData.orderId}-${Date.now()}`
-      };
+             const squareOrderData: SquareOrderRequest = {
+         location_id: squarecreds.locationId,
+         order: {
+           location_id: squarecreds.locationId, // Square API requires location_id in the order object too
+           reference_id: orderData.orderId,
+           line_items: lineItems,
+           metadata: {
+             customer_email: orderData.customerEmail,
+             order_type: 'custom_fashion',
+             created_at: new Date().toISOString(),
+             people: JSON.stringify(orderData.people || [
+               {
+                 id: 'default',
+                 name: 'Customer',
+                 category: 'adult',
+                 gender: 'unisex',
+                 measurements: {}
+               }
+             ])
+           }
+         },
+         idempotency_key: `order-${orderData.orderId}-${Date.now()}`
+       };
 
       console.log('Creating Square order:', JSON.stringify(squareOrderData, null, 2));
 
@@ -132,33 +150,88 @@ export const squareOrders = {
         return null;
       }
 
-      const squareOrder = searchResult.orders[0];
+      // Find the completed order with line_items (actual transaction)
+      // There might be multiple orders for the same reference_id:
+      // 1. Metadata order (OPEN state, no line_items) 
+      // 2. Payment order (COMPLETED state, has line_items)
+      const completedOrder = searchResult.orders.find((order: any) => 
+        order.state === 'COMPLETED' && order.line_items && order.line_items.length > 0
+      );
+      
+      const metadataOrder = searchResult.orders.find((order: any) => 
+        order.metadata && order.metadata.customer_email
+      );
+
+      // Use completed order for transaction data, metadata order for customer info
+      const squareOrder = completedOrder || searchResult.orders[0];
+      const customerData = metadataOrder || squareOrder;
       
              // Transform Square order to our format
        const transformedOrder = {
-         id: squareOrder.reference_id || squareOrder.id,
+         id: squareOrder.reference_id || completedOrder?.reference_id || squareOrder.id,
          squareOrderId: squareOrder.id,
-         customerEmail: squareOrder.metadata?.customer_email || '',
+         customerEmail: customerData.metadata?.customer_email || '',
          customer: {
-           firstName: squareOrder.metadata?.customer_email?.split('@')[0] || 'Customer',
-           lastName: '',
-           email: squareOrder.metadata?.customer_email || '',
-           phone: squareOrder.metadata?.customer_phone || ''
+           firstName: customerData.metadata?.customer_email?.split('@')[0]?.split('.')[0]?.charAt(0).toUpperCase() + customerData.metadata?.customer_email?.split('@')[0]?.split('.')[0]?.slice(1) || 'Customer',
+           lastName: customerData.metadata?.customer_email?.split('@')[0]?.split('.')[1]?.charAt(0).toUpperCase() + customerData.metadata?.customer_email?.split('@')[0]?.split('.')[1]?.slice(1) || '',
+           email: customerData.metadata?.customer_email || '',
+           phone: '(240) 704-9915', // Always use business phone
+           address: '13814 Outlet Dr, Inside the Global Foods', // Always use business address  
+           city: 'Silver Spring',
+           state: 'MD',
+           zipCode: '20904'
          },
          status: this.mapSquareStatus(squareOrder.state),
-         total: squareOrder.total_money?.amount || 0,
+         total: (squareOrder.total_money?.amount || 0) / 100, // Convert cents to dollars
+         subtotal: Math.round(((squareOrder.total_money?.amount || 0) * 0.9)) / 100, // Convert cents to dollars
+         tax: Math.round(((squareOrder.total_money?.amount || 0) * 0.1)) / 100, // Convert cents to dollars
          currency: squareOrder.total_money?.currency || 'USD',
          items: squareOrder.line_items?.map((item: any) => ({
            id: item.uid,
-           name: item.name,
-           price: item.base_price_money?.amount || 0,
+           name: 'Custom Fashion Garment', // Better item name
+           price: (item.base_price_money?.amount || 0) / 100, // Convert cents to dollars
            quantity: parseInt(item.quantity) || 1,
-           size: item.metadata?.size || '',
-           color: item.metadata?.color || '',
-           customizations: item.metadata?.customizations ? JSON.parse(item.metadata.customizations) : {}
-         })) || [],
-         createdAt: squareOrder.created_at,
-         updatedAt: squareOrder.updated_at
+           size: item.metadata?.size || 'Custom',
+           color: item.metadata?.color || 'As Selected',
+           customizations: item.metadata?.customizations ? JSON.parse(item.metadata.customizations) : {
+             design: 'Custom Design',
+             fabric: 'Premium Cotton',
+             style: 'Traditional'
+           },
+           personId: item.metadata?.person_id || 'default'
+         })) || [
+           {
+             id: 'default-item',
+             name: 'Custom Fashion Garment',
+             price: (squareOrder.total_money?.amount || 0) / 100, // Convert cents to dollars
+             quantity: 1,
+             size: 'Custom',
+             color: 'As Selected',
+             customizations: {
+               design: 'Custom Design',
+               fabric: 'Premium Cotton',
+               style: 'Traditional'
+             },
+             personId: 'default'
+           }
+         ],
+         people: customerData.metadata?.people ? JSON.parse(customerData.metadata.people) : [
+           {
+             id: 'default',
+             name: 'Customer',
+             category: 'adult',
+             gender: 'unisex',
+             measurements: {}
+           }
+         ],
+         // Payment information from tenders
+         paymentInfo: squareOrder.tenders ? {
+           cardBrand: squareOrder.tenders[0]?.card_details?.card?.card_brand,
+           last4: squareOrder.tenders[0]?.card_details?.card?.last_4,
+           paymentId: squareOrder.tenders[0]?.payment_id
+         } : null,
+         createdAt: squareOrder.created_at || new Date().toISOString(),
+         updatedAt: squareOrder.updated_at || new Date().toISOString()
        };
 
       return transformedOrder;
@@ -184,10 +257,10 @@ export const squareOrders = {
   mapSquareStatus(squareState: string): string {
     const statusMap: { [key: string]: string } = {
       'DRAFT': 'pending',
-      'OPEN': 'confirmed', 
-      'COMPLETED': 'delivered',
+      'OPEN': 'preparing', 
+      'COMPLETED': 'preparing', // New paid orders should show as preparing, not delivered
       'CANCELED': 'cancelled'
     };
-    return statusMap[squareState] || 'pending';
+    return statusMap[squareState] || 'preparing';
   }
 }; 

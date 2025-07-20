@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useCart } from '@/lib/CartContext';
 import {
   Box,
   Container,
@@ -39,6 +40,7 @@ type CustomerInfo = {
 
 export default function GuestCheckoutPage() {
   const router = useRouter();
+  const { clearCart, addItem } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSummary, setOrderSummary] = useState<OrderSummary | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -160,7 +162,31 @@ export default function GuestCheckoutPage() {
       sessionStorage.setItem('pendingOrder', JSON.stringify(order));
       
       // Redirect to payment page
-      router.push('/customize/payment');
+      // Add customize items to cart for unified checkout
+    if (orderSummary?.items) {
+      orderSummary.items.forEach((item: any) => {
+        const cartItem = {
+          id: Date.now() + Math.random(),
+          name: `Custom ${item.gender}'s Garment`,
+          price: item.price,
+          quantity: 1,
+          image: '/images/fafresh-logo.png',
+          size: item.measurements?.standardSize || 'Custom',
+          color: 'Custom Design',
+          category: 'custom',
+          productId: `custom-${item.personId}`,
+          customizations: {
+            gender: item.gender,
+            measurements: item.measurements,
+            personId: item.personId,
+            personName: item.personName
+          }
+        };
+        addItem(cartItem);
+      });
+    }
+    
+    router.push('/customize/payment');
       
     } catch (error) {
       console.error('Error processing checkout:', error);

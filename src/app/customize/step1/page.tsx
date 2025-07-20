@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import {
+  Alert,
   Typography,
   Grid,
   Card,
@@ -33,8 +34,6 @@ export default function StyleSelectionPage() {
   
   const [people, setPeople] = useState<Person[]>([]);
   const [currentPerson, setCurrentPerson] = useState<Person | null>(null);
-  const [selectedOccasion, setSelectedOccasion] = useState<Occasion | ''>('');
-
   useEffect(() => {
     // Load people from sessionStorage
     if (typeof window === 'undefined') return;
@@ -61,21 +60,47 @@ export default function StyleSelectionPage() {
   }, [personId, router]);
 
   const handleNext = () => {
-    if (currentPerson && selectedOccasion) {
+    if (currentPerson) {
       const params = new URLSearchParams();
       params.set('personId', currentPerson.id);
       params.set('gender', currentPerson.gender);
-      params.set('occasion', selectedOccasion);
       router.push(`/customize/step2?${params.toString()}`);
     }
   };
 
   if (!currentPerson) {
-    return <div>Loading...</div>;
+    return (
+      <Box sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        bgcolor: 'background.default'
+      }}>
+        <Stack spacing={3} alignItems="center">
+          <Box sx={{ 
+            width: 40, 
+            height: 40, 
+            borderRadius: '50%',
+            border: '3px solid',
+            borderColor: `${THEME.colors.primary}50`,
+            borderTopColor: THEME.colors.primary,
+            animation: 'spin 1s linear infinite',
+            '@keyframes spin': {
+              '0%': { transform: 'rotate(0deg)' },
+              '100%': { transform: 'rotate(360deg)' }
+            }
+          }} />
+          <Typography color="text.secondary">
+            Loading your customization details...
+          </Typography>
+        </Stack>
+      </Box>
+    );
   }
 
-  // Get available occasions for the selected gender
-  const availableOccasions = Object.keys(PRODUCT_DESIGNS[currentPerson.gender as Gender]) as Occasion[];
+  // We're skipping occasion selection, so we don't need this anymore
+  // const availableOccasions = Object.keys(PRODUCT_DESIGNS[currentPerson.gender as Gender]) as Occasion[];
 
   return (
     <>
@@ -143,7 +168,7 @@ export default function StyleSelectionPage() {
           </Card>
         </Grid>
 
-        {/* Occasion Selection */}
+        {/* Next Step Button */}
         <Grid item xs={12} md={6}>
           <Card 
             elevation={0} 
@@ -156,78 +181,35 @@ export default function StyleSelectionPage() {
               }
             }}
           >
-            <CardContent>
-              <FormControl component="fieldset" fullWidth>
-                <FormLabel
-                  component="legend"
-                  sx={{
-                    fontSize: '1.25rem',
-                    fontFamily: THEME.typography.headingFamily,
-                    color: 'text.primary',
-                    mb: 3
-                  }}
-                >
-                  What's the occasion?
-                </FormLabel>
-                <RadioGroup
-                  value={selectedOccasion}
-                  onChange={(e) => setSelectedOccasion(e.target.value as Occasion)}
-                >
-                  <Stack spacing={2}>
-                    {availableOccasions.map((occasionId) => (
-                      <FormControlLabel
-                        key={occasionId}
-                        value={occasionId}
-                        control={
-                          <Radio
-                            sx={{
-                              color: THEME.colors.primary,
-                              '&.Mui-checked': {
-                                color: THEME.colors.primary
-                              }
-                            }}
-                          />
-                        }
-                        label={occasionId.charAt(0).toUpperCase() + occasionId.slice(1)}
-                      />
-                    ))}
-                  </Stack>
-                </RadioGroup>
-              </FormControl>
+            <CardContent sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={handleNext}
+                sx={{
+                  py: 2,
+                  fontSize: '1.1rem',
+                  bgcolor: THEME.colors.primary,
+                  '&:hover': {
+                    bgcolor: THEME.colors.secondary
+                  }
+                }}
+              >
+                Continue to Sizing
+              </Button>
+              <Typography 
+                variant="body2" 
+                color="text.secondary" 
+                sx={{ mt: 2, textAlign: 'center' }}
+              >
+                We'll help you choose the perfect measurements in the next step
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        justifyContent="center"
-        sx={{ mt: 6 }}
-      >
-        <Button
-          variant="contained"
-          onClick={handleNext}
-          disabled={!currentPerson || !selectedOccasion}
-          sx={{
-            bgcolor: THEME.colors.primary,
-            color: 'white',
-            px: 6,
-            py: 1.5,
-            fontSize: '1rem',
-            fontWeight: 500,
-            '&:hover': {
-              bgcolor: THEME.colors.secondary
-            },
-            '&.Mui-disabled': {
-              bgcolor: 'action.disabledBackground',
-              color: 'action.disabled'
-            }
-          }}
-        >
-          Next: Choose Design
-        </Button>
-      </Stack>
+
     </>
   );
 } 

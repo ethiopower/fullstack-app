@@ -19,7 +19,9 @@ import { CheckCircle, Phone, Email, LocationOn, CalendarToday } from '@mui/icons
 import { THEME, BUSINESS_INFO } from '@/lib/constants';
 
 type Order = {
-  orderId: string;
+  id?: string;
+  orderId?: string;
+  squareOrderId?: string;
   customer: {
     firstName: string;
     lastName: string;
@@ -36,8 +38,10 @@ type Order = {
   tax: number;
   total: number;
   status: string;
-  paymentStatus: string;
-  timestamp: string;
+  paymentStatus?: string;
+  timestamp?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export default function OrderConfirmationPage() {
@@ -153,25 +157,40 @@ export default function OrderConfirmationPage() {
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">Order ID:</Typography>
-                    <Typography variant="h6" sx={{ color: THEME.colors.primary }}>
-                      {order.orderId}
+                    <Typography variant="h6" sx={{ color: THEME.colors.primary, fontFamily: 'monospace', fontSize: '1rem' }}>
+                      {order.id || order.squareOrderId || orderId || 'N/A'}
                     </Typography>
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">Order Date:</Typography>
                     <Typography>
-                      {new Date(order.timestamp).toLocaleDateString()}
+                      {order.createdAt ? 
+                        new Date(order.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 
+                        new Date().toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      }
                     </Typography>
                   </Grid>
                   <Grid item xs={12}>
                     <Stack direction="row" spacing={1}>
                       <Chip 
-                        label={order.status} 
-                        color="success" 
+                        label={order.status || 'preparing'} 
+                        color="warning" 
                         variant="outlined"
                       />
                       <Chip 
-                        label={order.paymentStatus} 
+                        label="paid" 
                         color="primary" 
                         variant="outlined"
                       />
@@ -235,16 +254,26 @@ export default function OrderConfirmationPage() {
                         <Grid container spacing={2}>
                           <Grid item xs={12} sm={6}>
                             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                              {person?.name || 'Unknown'}
+                              {item.name || 'Custom Fashion Garment'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              For: {person?.name || 'Customer'} • {person?.category || 'Adult'} • {person?.gender || 'Unisex'}
                             </Typography>
                             <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                              <Chip label={item.gender} size="small" />
-                              <Chip label={item.occasion} size="small" variant="outlined" />
+                              {item.size && (
+                                <Chip label={`Size: ${item.size}`} size="small" />
+                              )}
+                              {item.color && (
+                                <Chip label={`Color: ${item.color}`} size="small" variant="outlined" />
+                              )}
                             </Stack>
                           </Grid>
                           <Grid item xs={12} sm={6} textAlign="right">
                             <Typography variant="h6" sx={{ color: THEME.colors.primary }}>
-                              $299.00
+                              ${item.price?.toFixed(2) || '299.00'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Qty: {item.quantity || 1}
                             </Typography>
                           </Grid>
                         </Grid>

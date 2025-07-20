@@ -1,313 +1,315 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import {
   Box,
   Container,
   Typography,
-  Paper,
+  Card,
+  CardContent,
   Stepper,
   Step,
   StepLabel,
-  Grid,
-  Stack,
+  StepContent,
   Chip,
-  CircularProgress,
+  Grid,
   Alert,
-  Button
+  CircularProgress,
+  Stack
 } from '@mui/material';
-import {
-  LocalShipping as ShippingIcon,
-  Store as StoreIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon
+import { 
+  CheckCircle, 
+  Schedule, 
+  Build, 
+  LocalShipping, 
+  Done 
 } from '@mui/icons-material';
-import Link from 'next/link';
-import { THEME, BUSINESS_INFO } from '@/lib/constants';
-
-type OrderStatus = 'PENDING' | 'PROCESSING' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'CANCELLED';
-
-type Order = {
-  id: string;
-  customer: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-  };
-  orderDate: string;
-  status: OrderStatus;
-  subtotal: number;
-  items: Array<{
-    gender: string;
-    occasion: string;
-    design: any;
-    measurements: any;
-  }>;
-};
+import { THEME } from '@/lib/constants';
 
 const orderSteps = [
-  'Order Placed',
-  'Processing',
-  'Ready for Pickup',
-  'Completed'
+  {
+    label: 'Order Placed',
+    icon: <CheckCircle />,
+    description: 'Your order has been confirmed and payment processed'
+  },
+  {
+    label: 'Preparing',
+    icon: <Build />,
+    description: 'We are crafting your custom garment'
+  },
+  {
+    label: 'Quality Check',
+    icon: <Schedule />,
+    description: 'Final quality inspection and finishing touches'
+  },
+  {
+    label: 'Ready for Pickup',
+    icon: <LocalShipping />,
+    description: 'Your order is ready for pickup at our location'
+  },
+  {
+    label: 'Completed',
+    icon: <Done />,
+    description: 'Order picked up successfully'
+  }
 ];
 
-const statusColors: Record<OrderStatus, string> = {
-  PENDING: '#FFA726',
-  PROCESSING: '#29B6F6',
-  READY_FOR_PICKUP: '#66BB6A',
-  COMPLETED: '#4CAF50',
-  CANCELLED: '#EF5350'
-};
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-};
-
-export default function OrderTrackingPage({
-  params
-}: {
-  params: { orderId: string }
-}) {
-  const [order, setOrder] = useState<Order | null>(null);
+export default function OrderTrackingPage() {
+  const params = useParams();
+  const orderId = params.orderId as string;
+  const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const response = await fetch(`/api/orders/${params.orderId}`);
+        const response = await fetch(`/api/orders/${orderId}`);
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch order details');
+          throw new Error('Order not found');
         }
-        const data = await response.json();
-        setOrder(data);
-      } catch (err) {
-        setError('Failed to load order details');
+
+        const orderData = await response.json();
+        setOrder(orderData);
+      } catch (error) {
+        setError('Unable to find order. Please check your order ID.');
+        console.error('Error fetching order:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchOrder();
-  }, [params.orderId]);
+    if (orderId) {
+      fetchOrder();
+    }
+  }, [orderId]);
+
+  const getCurrentStep = (status: string) => {
+    switch (status) {
+      case 'pending': return 0;
+      case 'preparing': return 1;
+      case 'quality_check': return 2;
+      case 'ready': return 3;
+      case 'completed': return 4;
+      default: return 1;
+    }
+  };
 
   if (loading) {
     return (
-      <Box
-        sx={{
-          minHeight: '70vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error || !order) {
-    return (
-      <Container maxWidth="md" sx={{ py: 8, minHeight: '70vh', mt: 8 }}>
-        <Alert severity="error" sx={{ mb: 4 }}>
-          {error || 'Order not found'}
-        </Alert>
-        <Button
-          component={Link}
-          href="/"
-          variant="contained"
-          sx={{
-            bgcolor: THEME.colors.primary,
-            color: 'white',
-            '&:hover': {
-              bgcolor: THEME.colors.secondary
-            }
-          }}
-        >
-          Return Home
-        </Button>
+      <Container maxWidth="md" sx={{ py: 4, textAlign: 'center' }}>
+        <CircularProgress size={60} />
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          Loading order details...
+        </Typography>
       </Container>
     );
   }
 
-  const orderStatus = orderSteps.indexOf(order.status);
+  if (error) {
+    return (
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Alert severity="error">
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
+
+  const activeStep = getCurrentStep(order?.status || 'preparing');
 
   return (
-    <Box sx={{ py: THEME.spacing.section, minHeight: '100vh', mt: 8 }}>
-      <Container maxWidth="lg">
-        <Typography
-          variant="h1"
-          sx={{
-            fontSize: { xs: '2rem', md: '2.5rem' },
-            fontFamily: THEME.typography.headingFamily,
-            fontWeight: 500,
-            mb: 2
-          }}
-        >
-          Order Status
-        </Typography>
+    <Container maxWidth="md" sx={{ py: 4 }}>
+      <Typography variant="h3" gutterBottom textAlign="center" sx={{ fontWeight: 600 }}>
+        Track Your Order
+      </Typography>
+      
+      <Typography variant="h6" textAlign="center" color="text.secondary" sx={{ mb: 4 }}>
+        Order ID: {orderId}
+      </Typography>
 
-        <Typography variant="h6" color="text.secondary" gutterBottom>
-          Order #{order.id}
-        </Typography>
+      {order && (
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={8}>
+            <Card elevation={2}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Order Progress
+                </Typography>
+                
+                <Stepper activeStep={activeStep} orientation="vertical">
+                  {orderSteps.map((step, index) => (
+                    <Step key={step.label}>
+                      <StepLabel 
+                        icon={step.icon}
+                        sx={{
+                          '& .MuiStepLabel-iconContainer': {
+                            color: index <= activeStep ? THEME.colors.primary : 'grey.400'
+                          }
+                        }}
+                      >
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                          {step.label}
+                        </Typography>
+                      </StepLabel>
+                      <StepContent>
+                        <Typography color="text.secondary">
+                          {step.description}
+                        </Typography>
+                      </StepContent>
+                    </Step>
+                  ))}
+                </Stepper>
+              </CardContent>
+            </Card>
+          </Grid>
 
-        <Grid container spacing={6}>
-          {/* Order Status */}
-          <Grid item xs={12}>
-            <Paper elevation={0} sx={{ p: 4, mb: 4 }}>
-              <Stack spacing={4}>
-                <Box>
-                  <Typography variant="h6" gutterBottom>
-                    Current Status
-                  </Typography>
-                  <Chip
-                    label={order.status.replace('_', ' ')}
-                    sx={{
-                      bgcolor: `${statusColors[order.status]}15`,
-                      color: statusColors[order.status],
-                      fontWeight: 500,
-                      fontSize: '1rem',
-                      py: 1
-                    }}
+          <Grid item xs={12} md={4}>
+            <Card elevation={2}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Order Summary
+                </Typography>
+                
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">Status:</Typography>
+                  <Chip 
+                    label={order.status || 'preparing'} 
+                    color="warning" 
+                    variant="outlined"
+                    sx={{ mt: 0.5 }}
                   />
                 </Box>
 
-                <Box>
-                  <Stepper activeStep={orderStatus} alternativeLabel>
-                    {orderSteps.map((label) => (
-                      <Step key={label}>
-                        <StepLabel>{label}</StepLabel>
-                      </Step>
-                    ))}
-                  </Stepper>
-                </Box>
-              </Stack>
-            </Paper>
-          </Grid>
-
-          {/* Order Details */}
-          <Grid item xs={12} md={8}>
-            <Paper elevation={0} sx={{ p: 4 }}>
-              <Typography variant="h6" gutterBottom>
-                Order Details
-              </Typography>
-              <Stack spacing={3}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Order Date
-                  </Typography>
-                  <Typography variant="body1">
-                    {formatDate(order.orderDate)}
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">Total:</Typography>
+                  <Typography variant="h6" sx={{ color: THEME.colors.primary }}>
+                    ${order.total?.toFixed(2) || '0.00'}
                   </Typography>
                 </Box>
 
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Items
+                {/* Items with Measurements */}
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                    Order Items:
                   </Typography>
-                  {order.items.map((item, index) => (
-                    <Box key={index} sx={{ mt: 2 }}>
-                      <Typography variant="body1" fontWeight="medium">
-                        Custom {item.gender}'s {item.occasion} Outfit
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Design: {item.design.name}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Total Amount
-                  </Typography>
-                  <Typography variant="body1" fontWeight="medium">
-                    ${order.subtotal.toFixed(2)}
-                  </Typography>
-                </Box>
-              </Stack>
-            </Paper>
-          </Grid>
-
-          {/* Store Information */}
-          <Grid item xs={12} md={4}>
-            <Stack spacing={4}>
-              <Paper elevation={0} sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Store Information
-                </Typography>
-                <Stack spacing={3}>
-                  <Box>
-                    <Stack direction="row" spacing={2} alignItems="center">
-                      <StoreIcon sx={{ color: THEME.colors.primary }} />
-                      <Box>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Address
+                  {order.items?.map((item: any, index: number) => {
+                    const person = order.people?.find((p: any) => p.id === item.personId);
+                    return (
+                      <Card 
+                        key={index} 
+                        variant="outlined" 
+                        sx={{ mb: 2, p: 2, bgcolor: 'grey.50' }}
+                      >
+                        <Typography variant="subtitle2" gutterBottom>
+                          {item.name}
                         </Typography>
-                        <Typography variant="body1">
-                          {BUSINESS_INFO.address.full}<br />
-                          {BUSINESS_INFO.location}
-                        </Typography>
-                      </Box>
-                    </Stack>
+                        <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                          <Chip 
+                            label={`Qty: ${item.quantity}`} 
+                            size="small" 
+                            variant="outlined" 
+                          />
+                          <Chip 
+                            label={item.size} 
+                            size="small" 
+                            color={item.size === 'Custom' ? 'primary' : 'default'}
+                            variant="outlined" 
+                          />
+                        </Stack>
+                        {person && (
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">
+                              For: {person.name}
+                            </Typography>
+                            {item.size === 'Custom' && person.measurements && (
+                              <Box sx={{ mt: 1 }}>
+                                <Typography variant="caption" color="text.secondary">
+                                  Measurements:
+                                </Typography>
+                                <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                                  {Object.entries(person.measurements).map(([key, value]) => (
+                                    <Grid item xs={6} key={key}>
+                                      <Typography 
+                                        variant="caption" 
+                                        sx={{ 
+                                          display: 'flex', 
+                                          justifyContent: 'space-between',
+                                          color: 'text.secondary'
+                                        }}
+                                      >
+                                        <span style={{ textTransform: 'capitalize' }}>
+                                          {key}:
+                                        </span>
+                                        <span>{value}"</span>
+                                      </Typography>
+                                    </Grid>
+                                  ))}
+                                </Grid>
+                              </Box>
+                            )}
+                          </Box>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </Box>
+
+                <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                    Pickup Location:
+                  </Typography>
+                  <Typography variant="body2">
+                    Inside the Global Foods<br />
+                    13814 Outlet Dr<br />
+                    Silver Spring, MD 20904<br />
+                    <strong>Phone: (240) 704-9915</strong>
+                  </Typography>
+                </Box>
+
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  <Typography variant="body2">
+                    We'll email you when your order is ready for pickup!
+                  </Typography>
+                </Alert>
+
+                {/* Customer Information */}
+                {order.customer && (
+                  <Box sx={{ mt: 3, p: 2, bgcolor: 'primary.50', borderRadius: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                      Customer Information:
+                    </Typography>
+                    <Typography variant="body2">
+                      {order.customer.firstName} {order.customer.lastName}<br />
+                      {order.customer.email && `${order.customer.email}`}<br />
+                      {order.customer.phone && `Phone: ${order.customer.phone}`}
+                    </Typography>
                   </Box>
+                )}
 
-                  <Box>
-                    <Stack direction="row" spacing={2} alignItems="center">
-                      <PhoneIcon sx={{ color: THEME.colors.primary }} />
-                      <Box>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Phone
-                        </Typography>
-                        <Typography variant="body1">
-                          {BUSINESS_INFO.phone}
-                        </Typography>
-                      </Box>
-                    </Stack>
+                {/* Pickup Details */}
+                {order.pickupDate && (
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'success.50', borderRadius: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                      Pickup Details:
+                    </Typography>
+                    <Typography variant="body2">
+                      {new Date(order.pickupDate).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric', 
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </Typography>
                   </Box>
-
-                  <Box>
-                    <Stack direction="row" spacing={2} alignItems="center">
-                      <EmailIcon sx={{ color: THEME.colors.primary }} />
-                      <Box>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Email
-                        </Typography>
-                        <Typography variant="body1">
-                          {BUSINESS_INFO.contactEmail}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </Box>
-                </Stack>
-              </Paper>
-
-              <Button
-                component={Link}
-                href="/contact"
-                variant="outlined"
-                fullWidth
-                sx={{
-                  borderColor: THEME.colors.primary,
-                  color: THEME.colors.primary,
-                  '&:hover': {
-                    borderColor: THEME.colors.secondary,
-                    color: THEME.colors.secondary
-                  }
-                }}
-              >
-                Contact Us
-              </Button>
-            </Stack>
+                )}
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
-      </Container>
-    </Box>
+      )}
+    </Container>
   );
 } 

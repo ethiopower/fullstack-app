@@ -2,17 +2,19 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 
-interface CartItem {
+export interface CartItem {
   id: number;
+  productId: string;
   name: string;
   price: number;
-  quantity: number;
   image: string;
+  quantity: number;
+  category: string;
   size?: string;
+  measurements?: { [key: string]: string };
+  isCustom?: boolean;
+  personId?: string;
   color?: string;
-  category?: string;
-  productId?: string;
-  customizations?: Record<string, any>;
 }
 
 interface CartContextType {
@@ -20,6 +22,7 @@ interface CartContextType {
   addItem: (item: CartItem) => void;
   removeItem: (itemId: number) => void;
   updateQuantity: (itemId: number, quantity: number) => void;
+  updateItem: (itemId: number, updates: Partial<CartItem>) => void;
   clearCart: () => void;
   itemCount: number;
   total: number;
@@ -47,23 +50,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [items, isClient]);
 
-  const addItem = (newItem: CartItem) => {
-    setItems(currentItems => {
-      const existingItem = currentItems.find(item => 
-        item.id === newItem.id && 
-        item.size === newItem.size &&
-        JSON.stringify(item.customizations) === JSON.stringify(newItem.customizations)
+  const addItem = (item: CartItem) => {
+    setItems(prevItems => {
+      // Check if item already exists
+      const existingItemIndex = prevItems.findIndex(i => 
+        i.productId === item.productId && 
+        i.personId === item.personId
       );
 
-      if (existingItem) {
-        return currentItems.map(item =>
-          item === existingItem
-            ? { ...item, quantity: item.quantity + (newItem.quantity || 1) }
-            : item
-        );
+      if (existingItemIndex >= 0) {
+        // Update existing item with new info
+        const updatedItems = [...prevItems];
+        updatedItems[existingItemIndex] = {
+          ...updatedItems[existingItemIndex],
+          ...item,
+          quantity: updatedItems[existingItemIndex].quantity + item.quantity
+        };
+        return updatedItems;
       }
 
-      return [...currentItems, { ...newItem, quantity: newItem.quantity || 1 }];
+      // Add new item
+      return [...prevItems, item];
     });
   };
 
@@ -84,8 +91,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const updateItem = (itemId: number, updates: Partial<CartItem>) => {
+    setItems(currentItems =>
+      currentItems.map(item =>
+        item.id === itemId ? { ...item, ...updates } : item
+      )
+    );
+  };
+
   const clearCart = () => {
     setItems([]);
+    if (isClient) {
+      localStorage.removeItem('cart');
+    }
+    console.log('🛒 Cart cleared after successful payment');
   };
 
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
@@ -97,6 +116,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       addItem,
       removeItem,
       updateQuantity,
+      updateItem,
       clearCart,
       itemCount,
       total

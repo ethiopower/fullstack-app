@@ -21,42 +21,62 @@ import {
   Select,
   MenuItem,
   InputLabel,
-  Divider
+  Divider,
+  Chip,
+  ToggleButtonGroup,
+  ToggleButton,
+  Tooltip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  InputAdornment
 } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { THEME } from '@/lib/constants';
+import { useOrder } from '@/lib/OrderContext';
+import { StraightenRounded, Info } from '@mui/icons-material';
+import Image from 'next/image';
+import { useCart } from '@/lib/CartContext';
 
-type Measurements = {
-  [key: string]: string;
+type Field = {
+  id: string;
+  label: string;
+  helper: string;
 };
 
-const measurementFields = {
+type MeasurementFields = {
+  [key: string]: Field[];
+};
+
+const measurementFields: MeasurementFields = {
   men: [
-    { id: 'neck', label: 'Neck', helper: 'Measure around the base of the neck' },
-    { id: 'chest', label: 'Chest', helper: 'Measure around the fullest part of the chest' },
-    { id: 'waist', label: 'Waist', helper: 'Measure around natural waistline' },
-    { id: 'hips', label: 'Hips', helper: 'Measure around the fullest part of the hips' },
-    { id: 'shoulder', label: 'Shoulder Width', helper: 'Measure from shoulder point to shoulder point' },
-    { id: 'sleeve', label: 'Sleeve Length', helper: 'Measure from shoulder to wrist' },
-    { id: 'inseam', label: 'Inseam', helper: 'Measure from crotch to ankle' },
-    { id: 'height', label: 'Height', helper: 'Your full height' }
+    { id: 'chest', label: 'Chest', helper: 'Measure around the fullest part of the chest (cm)' },
+    { id: 'waist', label: 'Waist', helper: 'Measure around natural waistline (cm)' },
+    { id: 'shoulder', label: 'Shoulder Width', helper: 'Measure from shoulder point to shoulder point (cm)' },
+    { id: 'sleeve', label: 'Sleeve Length', helper: 'Measure from shoulder to wrist (cm)' },
+    { id: 'neck', label: 'Neck', helper: 'Measure around the base of the neck (cm)' },
+    { id: 'length', label: 'Shirt Length', helper: 'Measure from shoulder to desired length (cm)' },
+    { id: 'inseam', label: 'Inseam', helper: 'Measure from crotch to ankle (cm)' },
+    { id: 'height', label: 'Height', helper: 'Your full height (cm)' }
   ],
   women: [
-    { id: 'bust', label: 'Bust', helper: 'Measure around the fullest part of the bust' },
-    { id: 'waist', label: 'Waist', helper: 'Measure around natural waistline' },
-    { id: 'hips', label: 'Hips', helper: 'Measure around the fullest part of the hips' },
-    { id: 'shoulder', label: 'Shoulder Width', helper: 'Measure from shoulder point to shoulder point' },
-    { id: 'sleeve', label: 'Sleeve Length', helper: 'Measure from shoulder to wrist' },
-    { id: 'length', label: 'Dress Length', helper: 'Measure from shoulder to desired length' },
-    { id: 'height', label: 'Height', helper: 'Your full height' }
+    { id: 'bust', label: 'Bust', helper: 'Measure around the fullest part of the bust (cm)' },
+    { id: 'waist', label: 'Waist', helper: 'Measure around natural waistline (cm)' },
+    { id: 'hips', label: 'Hips', helper: 'Measure around the fullest part of hips (cm)' },
+    { id: 'shoulder', label: 'Shoulder Width', helper: 'Measure from shoulder point to shoulder point (cm)' },
+    { id: 'sleeve', label: 'Sleeve Length', helper: 'Measure from shoulder to wrist (cm)' },
+    { id: 'length', label: 'Dress Length', helper: 'Measure from shoulder to desired length (cm)' },
+    { id: 'height', label: 'Height', helper: 'Your full height (cm)' }
   ],
   children: [
-    { id: 'chest', label: 'Chest', helper: 'Measure around the fullest part of the chest' },
-    { id: 'waist', label: 'Waist', helper: 'Measure around natural waistline' },
-    { id: 'shoulder', label: 'Shoulder Width', helper: 'Measure from shoulder point to shoulder point' },
-    { id: 'sleeve', label: 'Sleeve Length', helper: 'Measure from shoulder to wrist' },
-    { id: 'length', label: 'Outfit Length', helper: 'Measure from shoulder to desired length' },
-    { id: 'height', label: 'Height', helper: 'Child\'s full height' },
+    { id: 'chest', label: 'Chest', helper: 'Measure around the fullest part of the chest (cm)' },
+    { id: 'waist', label: 'Waist', helper: 'Measure around natural waistline (cm)' },
+    { id: 'shoulder', label: 'Shoulder Width', helper: 'Measure from shoulder point to shoulder point (cm)' },
+    { id: 'sleeve', label: 'Sleeve Length', helper: 'Measure from shoulder to wrist (cm)' },
+    { id: 'length', label: 'Outfit Length', helper: 'Measure from shoulder to desired length (cm)' },
+    { id: 'height', label: 'Height', helper: 'Child\'s full height (cm)' },
     { id: 'age', label: 'Age', helper: 'Child\'s age in years' }
   ]
 } as const;
@@ -64,37 +84,52 @@ const measurementFields = {
 export default function MeasurementsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const gender = searchParams.get('gender') as keyof typeof measurementFields;
-  const occasion = searchParams.get('occasion');
-  const designId = searchParams.get('design');
+  const { updatePerson, getCurrentPerson, nextPerson, isLastPerson, people } = useOrder();
+  const { items, updateItem } = useCart();
 
-  const [sizingOption, setSizingOption] = useState<'standard' | 'custom'>('standard');
+  const [sizingOption, setSizingOption] = useState<'standard' | 'custom'>('custom');
   const [standardSize, setStandardSize] = useState<string>('');
-  const [measurements, setMeasurements] = useState<Measurements>({});
-  const [errors, setErrors] = useState<Measurements>({});
+  const [measurements, setMeasurements] = useState<{ [key: string]: string }>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [activeGuide, setActiveGuide] = useState<string | null>(null);
+
+  const measurementGuides: { [key: string]: string } = {
+    chest: '/images/measurements/chest.png',
+    bust: '/images/measurements/bust.png',
+    waist: '/images/measurements/waist.png',
+    hips: '/images/measurements/hips.png',
+    shoulder: '/images/measurements/shoulder.png',
+    sleeve: '/images/measurements/sleeve.png',
+    length: '/images/measurements/length.png',
+    inseam: '/images/measurements/inseam.png',
+    neck: '/images/measurements/neck.png',
+    height: '/images/measurements/height.png'
+  };
+
+  const currentPerson = getCurrentPerson();
 
   useEffect(() => {
-    if (!gender || !occasion || !designId) {
-      router.push('/customize/step1');
+    if (!currentPerson || !currentPerson.designId) {
+      router.push('/customize/step2');
       return;
     }
 
-    // Initialize measurements
-    const fields = measurementFields[gender];
-    const initialMeasurements = fields.reduce((acc, field) => {
-      acc[field.id] = '';
-      return acc;
-    }, {} as Measurements);
+    // Initialize measurements object
+    const fields = measurementFields[currentPerson.gender] || [];
+    const initialMeasurements: { [key: string]: string } = {};
+    fields.forEach(field => {
+      initialMeasurements[field.id] = '';
+    });
     setMeasurements(initialMeasurements);
-  }, [gender, occasion, designId, router]);
+  }, [currentPerson, router]);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleMeasurementChange = (field: string, value: string) => {
     setMeasurements(prev => ({
       ...prev,
       [field]: value
     }));
-
-    // Clear error when user types
+    
+    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({
         ...prev,
@@ -112,8 +147,8 @@ export default function MeasurementsPage() {
       return true;
     }
 
-    const newErrors: Measurements = {};
-    const fields = measurementFields[gender];
+    const newErrors: { [key: string]: string } = {};
+    const fields = measurementFields[currentPerson!.gender];
 
     fields.forEach(field => {
       if (!measurements[field.id]) {
@@ -130,238 +165,357 @@ export default function MeasurementsPage() {
   };
 
   const handleNext = () => {
+    if (!currentPerson) return;
+
     if (validateMeasurements()) {
-      // Save current person's data to session storage
-      const personId = searchParams.get('personId');
-      const gender = searchParams.get('gender');
-      const occasion = searchParams.get('occasion');
-      const design = searchParams.get('design');
-      
-      // Get existing order data
-      const existingOrders = JSON.parse(sessionStorage.getItem('orderData') || '[]');
-      
-      // Add current person's order
-      const currentOrder = {
-        personId,
-        gender,
-        occasion,
-        design,
-        sizingType: sizingOption,
-        measurements: sizingOption === 'standard' ? { standardSize } : measurements
-      };
-      
-      const updatedOrders = [...existingOrders.filter((order: any) => order.personId !== personId), currentOrder];
-      sessionStorage.setItem('orderData', JSON.stringify(updatedOrders));
-      
-      // Check if there are more people to process
-      const people = JSON.parse(sessionStorage.getItem('orderPeople') || '[]');
-      const completedPeople = updatedOrders.map((order: any) => order.personId);
-      const remainingPeople = people.filter((person: any) => !completedPeople.includes(person.id));
-      
-      if (remainingPeople.length > 0) {
-        // Go to next person
-        const nextPerson = remainingPeople[0];
-        router.push(`/customize/step1?personId=${nextPerson.id}`);
+      // Update person with size information
+      updatePerson(currentPerson.id, {
+        size: sizingOption === 'standard' ? standardSize : 'Custom',
+        measurements: sizingOption === 'custom' ? measurements : undefined
+      });
+
+      // Update cart item with measurements
+      const cartItem = items.find(item => item.personId === currentPerson.id);
+      if (cartItem) {
+        updateItem(cartItem.id, {
+          size: sizingOption === 'standard' ? standardSize : 'Custom',
+          measurements: sizingOption === 'custom' ? measurements : undefined,
+          isCustom: true
+        });
+      }
+
+      if (isLastPerson()) {
+        router.push('/cart');
       } else {
-        // All people completed, go to order summary
-        router.push('/customize/step4');
+        nextPerson();
+        router.push(`/customize/step2?personId=${people[people.indexOf(currentPerson) + 1].id}`);
       }
     }
   };
 
   const handleBack = () => {
-    router.push(`/customize/step2?gender=${gender}&occasion=${occasion}`);
+    if (currentPerson) {
+      router.push(`/customize/step2?personId=${currentPerson.id}`);
+    }
   };
 
-  const fields = measurementFields[gender] || [];
-  const standardSizes = gender === 'children' 
-    ? ['2T', '3T', '4T', '5T', '6', '7', '8', '10', '12', '14', '16']
-    : ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  if (!currentPerson) {
+    return (
+      <Box sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        bgcolor: 'background.default'
+      }}>
+        <Stack spacing={3} alignItems="center">
+          <Box sx={{ 
+            width: 40, 
+            height: 40, 
+            borderRadius: '50%',
+            border: '3px solid',
+            borderColor: `${THEME.colors.primary}50`,
+            borderTopColor: THEME.colors.primary,
+            animation: 'spin 1s linear infinite',
+            '@keyframes spin': {
+              '0%': { transform: 'rotate(0deg)' },
+              '100%': { transform: 'rotate(360deg)' }
+            }
+          }} />
+          <Typography color="text.secondary">
+            Loading sizing options...
+          </Typography>
+        </Stack>
+      </Box>
+    );
+  }
+
+  const standardSizes = currentPerson.gender === 'children' 
+    ? ['2T', '3T', '4T', '5T', '6', '7', '8', '10', '12', '14', '16', 'Custom']
+    : ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Custom'];
+
+  const handleSizeChange = (size: string) => {
+    setStandardSize(size);
+    if (size === 'Custom') {
+      setSizingOption('custom');
+    } else {
+      setSizingOption('standard');
+    }
+  };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 8 }}>
-      <Typography
-        variant="h1"
-        sx={{
-          fontSize: { xs: '2rem', md: '2.5rem' },
-          fontFamily: THEME.typography.headingFamily,
-          fontWeight: 500,
-          mb: 2,
-          color: 'text.primary'
-        }}
-      >
-        Sizing Options
-      </Typography>
-
-      <Typography variant="h6" color="text.secondary" sx={{ mb: 6 }}>
-        Choose how you'd like to get the perfect fit
-      </Typography>
-
-      {/* Sizing Option Selection */}
-      <Grid container spacing={4} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
-          <Card 
-            elevation={sizingOption === 'standard' ? 3 : 1}
-            sx={{ 
-              height: '100%',
-              border: sizingOption === 'standard' ? `2px solid ${THEME.colors.primary}` : '1px solid',
-              borderColor: sizingOption === 'standard' ? THEME.colors.primary : 'divider',
-              cursor: 'pointer'
-            }}
-            onClick={() => setSizingOption('standard')}
-          >
-            <CardContent sx={{ p: 3 }}>
-              <FormControlLabel
-                control={
-                  <Radio
-                    checked={sizingOption === 'standard'}
-                    onChange={() => setSizingOption('standard')}
-                    sx={{ color: THEME.colors.primary }}
-                  />
-                }
-                label={
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Standard Sizes
+    <Box sx={{ py: THEME.spacing.section, minHeight: '100vh', mt: 8 }}>
+      <Container maxWidth="lg" sx={{ py: 8 }}>
+        {/* Progress Indicator */}
+        <Box sx={{ mb: 4 }}>
+          <Stack spacing={2}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Order Progress
+            </Typography>
+            {people.map((person, index) => (
+              <Box
+                key={person.id}
+                sx={{
+                  p: 2,
+                  border: '1px solid',
+                  borderColor: person.id === currentPerson.id ? THEME.colors.primary : 'divider',
+                  borderRadius: 1,
+                  bgcolor: person.id === currentPerson.id ? `${THEME.colors.primary}10` : 'transparent'
+                }}
+              >
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Typography variant="body1" sx={{ flex: 1 }}>
+                    {index + 1}. {person.name}
                   </Typography>
-                }
-                sx={{ mb: 2 }}
-              />
-              
-              <Typography variant="body1" sx={{ mb: 3 }}>
-                Choose from our standard size chart. Quick and convenient option.
-              </Typography>
+                  <Stack direction="row" spacing={1}>
+                    {person.designId && (
+                      <Chip 
+                        label="Design ✓" 
+                        color="success" 
+                        size="small" 
+                        variant="outlined"
+                      />
+                    )}
+                    {person.size ? (
+                      <Chip 
+                        label="Size ✓" 
+                        color="success" 
+                        size="small" 
+                        variant="outlined"
+                      />
+                    ) : person.id === currentPerson.id ? (
+                      <Chip 
+                        label="Selecting Size" 
+                        color="primary" 
+                        size="small"
+                      />
+                    ) : (
+                      <Chip 
+                        label="Size Pending" 
+                        color="default" 
+                        size="small" 
+                        variant="outlined"
+                      />
+                    )}
+                  </Stack>
+                </Stack>
+              </Box>
+            ))}
+          </Stack>
+        </Box>
 
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                <Typography variant="body2">
-                  <strong>Disclaimer:</strong> Standard sizes may not provide the perfect fit for everyone. 
-                  We recommend custom measurements for the best results.
-                </Typography>
-              </Alert>
+        <Typography
+          variant="h1"
+          sx={{
+            fontSize: { xs: '2rem', md: '2.5rem' },
+            fontFamily: THEME.typography.headingFamily,
+            fontWeight: 500,
+            mb: 2,
+            color: 'text.primary'
+          }}
+        >
+          Choose Size for {currentPerson.name}
+        </Typography>
 
-              {sizingOption === 'standard' && (
-                <FormControl fullWidth>
-                  <InputLabel>Select Size</InputLabel>
-                  <Select
-                    value={standardSize}
-                    label="Select Size"
-                    onChange={(e) => setStandardSize(e.target.value)}
-                  >
-                    {standardSizes.map((size) => (
-                      <MenuItem key={size} value={size}>
-                        {size}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            mb: 4,
+            color: 'text.secondary',
+            fontFamily: THEME.typography.headingFamily
+          }}
+        >
+          Enter your measurements for the perfect fit
+        </Typography>
 
-        <Grid item xs={12} md={6}>
-          <Card 
-            elevation={sizingOption === 'custom' ? 3 : 1}
-            sx={{ 
-              height: '100%',
-              border: sizingOption === 'custom' ? `2px solid ${THEME.colors.primary}` : '1px solid',
-              borderColor: sizingOption === 'custom' ? THEME.colors.primary : 'divider',
-              cursor: 'pointer'
-            }}
-            onClick={() => setSizingOption('custom')}
-          >
-            <CardContent sx={{ p: 3 }}>
-              <FormControlLabel
-                control={
-                  <Radio
-                    checked={sizingOption === 'custom'}
-                    onChange={() => setSizingOption('custom')}
-                    sx={{ color: THEME.colors.primary }}
-                  />
-                }
-                label={
+        <Grid container spacing={4}>
+          {/* Custom Measurements */}
+          <Grid item xs={12} md={8}>
+            <Card elevation={2}>
+              <CardContent>
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Custom Measurements
+                    Sizing Method
                   </Typography>
-                }
-                sx={{ mb: 2 }}
-              />
-              
-              <Typography variant="body1" sx={{ mb: 3 }}>
-                Provide your exact measurements for a perfect, tailored fit.
-              </Typography>
-
-              <Alert severity="success">
-                <Typography variant="body2">
-                  <strong>Recommended:</strong> Custom measurements ensure the best possible fit 
-                  and the highest quality result for your custom garment.
-                </Typography>
-              </Alert>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Custom Measurements Form */}
-      {sizingOption === 'custom' && (
-        <>
-          <Divider sx={{ my: 4 }} />
-          
-          <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-            Your Measurements
-          </Typography>
-
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            Please provide your measurements in inches. For the most accurate fit, 
-            we recommend having someone help you take measurements.
-          </Typography>
-
-          <Grid container spacing={4}>
-            {fields.map((field) => (
-              <Grid item xs={12} sm={6} key={field.id}>
-                <FormControl fullWidth error={Boolean(errors[field.id])}>
-                  <FormLabel
+                  <ToggleButtonGroup
+                    value={sizingOption}
+                    exclusive
+                    onChange={(_, value) => value && setSizingOption(value)}
+                    size="small"
                     sx={{
-                      color: 'text.primary',
-                      mb: 1,
-                      fontWeight: 500
+                      '& .MuiToggleButton-root': {
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        px: 2,
+                        '&.Mui-selected': {
+                          bgcolor: THEME.colors.primary + '15',
+                          color: THEME.colors.primary,
+                          borderColor: THEME.colors.primary,
+                          '&:hover': {
+                            bgcolor: THEME.colors.primary + '25'
+                          }
+                        }
+                      }
                     }}
                   >
-                    {field.label}
-                  </FormLabel>
-                  <TextField
-                    value={measurements[field.id] || ''}
-                    onChange={(e) => handleInputChange(field.id, e.target.value)}
-                    placeholder="Enter measurement in inches"
-                    type="number"
-                    inputProps={{ step: 0.25 }}
-                    error={Boolean(errors[field.id])}
-                    helperText={errors[field.id] || field.helper}
-                    fullWidth
-                  />
-                </FormControl>
-              </Grid>
-            ))}
-          </Grid>
-        </>
-      )}
+                    <ToggleButton value="custom">Custom Measurements</ToggleButton>
+                    <ToggleButton value="standard">Standard Sizes</ToggleButton>
+                  </ToggleButtonGroup>
+                </Stack>
 
+                {sizingOption === 'custom' ? (
+                  <Grid container spacing={3}>
+                    {measurementFields[currentPerson.gender].map((field) => (
+                      <Grid item xs={12} sm={6} key={field.id}>
+                        <Box
+                          sx={{
+                            position: 'relative',
+                            '&:hover': {
+                              '& .measurement-guide': {
+                                opacity: 1,
+                                visibility: 'visible'
+                              }
+                            }
+                          }}
+                        >
+                          <FormControl fullWidth error={!!errors[field.id]}>
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                              <FormLabel>{field.label}</FormLabel>
+                              {measurementGuides[field.id] && (
+                                <Tooltip title="Click to see measurement guide">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => setActiveGuide(activeGuide === field.id ? null : field.id)}
+                                    sx={{ color: 'text.secondary' }}
+                                  >
+                                    <StraightenRounded fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Stack>
+                            <TextField
+                              value={measurements[field.id] || ''}
+                              onChange={(e) => handleMeasurementChange(field.id, e.target.value)}
+                              type="number"
+                              size="small"
+                              error={!!errors[field.id]}
+                              helperText={errors[field.id] || field.helper}
+                              InputProps={{
+                                endAdornment: <InputAdornment position="end">cm</InputAdornment>
+                              }}
+                              sx={{
+                                '& .MuiOutlinedInput-root': {
+                                  borderRadius: '8px'
+                                }
+                              }}
+                            />
+                          </FormControl>
+
+                          {/* Measurement Guide Dialog */}
+                          <Dialog
+                            open={activeGuide === field.id}
+                            onClose={() => setActiveGuide(null)}
+                            maxWidth="sm"
+                            fullWidth
+                          >
+                            <DialogTitle>
+                              How to Measure: {field.label}
+                            </DialogTitle>
+                            <DialogContent>
+                              {measurementGuides[field.id] && (
+                                <Box sx={{ position: 'relative', width: '100%', height: 400, mb: 2 }}>
+                                  <Image
+                                    src={measurementGuides[field.id]}
+                                    alt={`How to measure ${field.label}`}
+                                    fill
+                                    style={{ objectFit: 'contain' }}
+                                  />
+                                </Box>
+                              )}
+                              <Typography variant="body1">
+                                {field.helper}
+                              </Typography>
+                            </DialogContent>
+                            <DialogActions>
+                              <Button onClick={() => setActiveGuide(null)}>Close</Button>
+                            </DialogActions>
+                          </Dialog>
+                        </Box>
+                      </Grid>
+                    ))}
+                  </Grid>
+                ) : (
+                  <Box>
+                    <FormControl fullWidth>
+                      <InputLabel>Select a Standard Size</InputLabel>
+                      <Select
+                        value={standardSize}
+                        onChange={(e) => setStandardSize(e.target.value)}
+                        label="Select a Standard Size"
+                      >
+                        <MenuItem value="" disabled>Choose a size</MenuItem>
+                        {standardSizes.map((size) => (
+                          <MenuItem key={size} value={size}>{size}</MenuItem>
+                        ))}
+                      </Select>
+                      <FormHelperText>
+                        Select your usual clothing size, or switch to custom measurements for a perfect fit
+                      </FormHelperText>
+                    </FormControl>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Size Guide */}
+          <Grid item xs={12} md={4}>
+            <Card elevation={2}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Measurement Tips
+                </Typography>
+                <Stack spacing={2}>
+                  <Alert severity="info" sx={{ '& .MuiAlert-message': { width: '100%' } }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      For the most accurate measurements:
+                    </Typography>
+                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                      <li>Use a fabric measuring tape</li>
+                      <li>Keep the tape snug but not tight</li>
+                      <li>Measure over undergarments</li>
+                      <li>Stand naturally while measuring</li>
+                    </ul>
+                  </Alert>
+                  <Button
+                    variant="outlined"
+                    onClick={() => window.open('/size-guide.pdf', '_blank')}
+                    startIcon={<Info />}
+                    fullWidth
+                  >
+                    View Full Size Guide
+                  </Button>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {/* Navigation */}
         <Stack
-          direction={{ xs: 'column', sm: 'row' }}
+          direction="row"
           spacing={2}
           justifyContent="center"
-          sx={{ mt: 6 }}
+          sx={{ mt: 4 }}
         >
           <Button
             variant="outlined"
             onClick={handleBack}
             sx={{
-              borderColor: THEME.colors.primary,
-              color: THEME.colors.primary,
-              px: 6,
-              '&:hover': {
-                borderColor: THEME.colors.secondary,
-                color: THEME.colors.secondary
-              }
+              px: 4,
+              py: 1,
+              fontSize: '0.9rem',
+              fontWeight: 500
             }}
           >
             Back
@@ -369,16 +523,20 @@ export default function MeasurementsPage() {
           <Button
             variant="contained"
             onClick={handleNext}
+            disabled={!standardSize && sizingOption !== 'custom'}
             sx={{
               bgcolor: THEME.colors.primary,
               color: 'white',
-              px: 6,
+              px: 4,
+              py: 1,
+              fontSize: '0.9rem',
+              fontWeight: 500,
               '&:hover': {
                 bgcolor: THEME.colors.secondary
               }
             }}
           >
-            Next: Review
+            Continue
           </Button>
         </Stack>
       </Container>

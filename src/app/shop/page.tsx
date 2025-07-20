@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -11,571 +11,517 @@ import {
   CardMedia,
   Button,
   Chip,
-  Modal,
   Stack,
-  Divider,
+  Drawer,
   IconButton,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
+  TextField,
+  Slider,
+  Divider,
   Badge,
   Fade,
-  Backdrop
+  useMediaQuery,
+  useTheme,
+  Pagination,
+  Alert,
+  InputAdornment
 } from '@mui/material';
-import { Close, ShoppingCart, Add, Remove } from '@mui/icons-material';
+import {
+  FilterList,
+  Close,
+  ShoppingCart,
+  Search,
+  Sort,
+  Tune,
+  Star,
+  LocalShipping,
+  Refresh
+} from '@mui/icons-material';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { THEME } from '@/lib/constants';
 import { useCart } from '@/lib/CartContext';
+import {
+  products,
+  productCategories,
+  productGenders,
+  productColors,
+  productSizes,
+  filterProducts,
+  type Product,
+  type ProductCategory,
+  type ProductGender,
+  type ProductColor,
+  type ProductSize
+} from '@/lib/products';
+import { getProductImagePath, handleImageError } from '@/lib/image-utils';
 
-// Sample ready-made products
-const shopProducts = [
-  {
-    id: 'habesha-kemis-1',
-    name: 'Traditional Habesha Kemis',
-    price: 299,
-    originalPrice: 399,
-    description: 'Exquisite hand-embroidered cotton dress featuring intricate Ethiopian patterns and traditional tilf designs. Perfect for special occasions and cultural celebrations.',
-    features: [
-      'Hand-embroidered traditional patterns',
-      'Premium 100% cotton fabric',
-      'Traditional tilf border design',
-      'Available in multiple sizes',
-      'Cultural authenticity certified'
-    ],
-    image: '/images/instagram/imgi_1_278193034_380033810648589_636440153269846173_n.jpg',
-    category: 'Traditional',
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    colors: ['White', 'Cream', 'Light Blue'],
-    inStock: true,
-    bestseller: true
-  },
-  {
-    id: 'modern-tilfi-1',
-    name: 'Modern Tilfi Dress',
-    price: 249,
-    originalPrice: 320,
-    description: 'Contemporary interpretation of traditional Ethiopian formal wear. Features modern cuts while maintaining cultural elements and sophisticated styling.',
-    features: [
-      'Modern contemporary design',
-      'Traditional Ethiopian elements',
-      'Comfortable fit and cut',
-      'Suitable for formal events',
-      'High-quality fabric blend'
-    ],
-    image: '/images/instagram/imgi_3_353591052_285357163930407_5308760856456849800_n.jpg',
-    category: 'Modern',
-    sizes: ['XS', 'S', 'M', 'L', 'XL'],
-    colors: ['Black', 'Navy', 'Burgundy'],
-    inStock: true,
-    bestseller: false
-  },
-  {
-    id: 'wedding-dress-1',
-    name: 'Ethiopian Wedding Dress',
-    price: 599,
-    originalPrice: 799,
-    description: 'Luxurious wedding dress combining traditional Ethiopian bridal elements with elegant modern styling. Perfect for the most special day of your life.',
-    features: [
-      'Luxury bridal fabric',
-      'Traditional wedding elements',
-      'Custom tailoring included',
-      'Ceremonial accessories included',
-      'Heirloom quality construction'
-    ],
-    image: '/images/instagram/imgi_7_278407559_1005903230031551_1377516088203914242_n.webp',
-    category: 'Bridal',
-    sizes: ['XS', 'S', 'M', 'L', 'XL'],
-    colors: ['White', 'Ivory', 'Champagne'],
-    inStock: true,
-    bestseller: true
-  },
-  {
-    id: 'mens-suit-1',
-    name: "Men's Ethiopian Suit",
-    price: 399,
-    originalPrice: 499,
-    description: 'Sophisticated men\'s suit featuring traditional Ethiopian styling with modern tailoring. Perfect for formal occasions and cultural events.',
-    features: [
-      'Traditional Ethiopian styling',
-      'Modern tailoring techniques',
-      'Premium suit fabric',
-      'Cultural pattern details',
-      'Professional appearance'
-    ],
-    image: '/images/instagram/imgi_8_278414402_4983576831731269_5207514082339612036_n.webp',
-    category: 'Men',
-    sizes: ['S', 'M', 'L', 'XL', 'XXL'],
-    colors: ['Black', 'Navy', 'Charcoal'],
-    inStock: true,
-    bestseller: false
-  }
-];
+// Number of products per page
+const PRODUCTS_PER_PAGE = 12;
 
 export default function ShopPage() {
   const router = useRouter();
-  const { addItem, items } = useCart();
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [selectedSize, setSelectedSize] = useState('');
-  const [selectedColor, setSelectedColor] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [modalOpen, setModalOpen] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { addItem } = useCart();
 
-  const handleProductClick = (product: any) => {
-    setSelectedProduct(product);
-    setSelectedSize(product.sizes[0] || '');
-    setSelectedColor(product.colors[0] || '');
-    setQuantity(1);
-    setModalOpen(true);
+  // Filter states
+  const [category, setCategory] = useState<ProductCategory | ''>('');
+  const [gender, setGender] = useState<ProductGender | ''>('');
+  const [color, setColor] = useState<ProductColor | ''>('');
+  const [size, setSize] = useState<ProductSize | ''>('');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showCustomizable, setShowCustomizable] = useState(false);
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<'price_asc' | 'price_desc' | 'name_asc' | 'name_desc'>('name_asc');
+
+  // UI states
+  const [filtersOpen, setFiltersOpen] = useState(false); // Changed from !isMobile to false
+  const [page, setPage] = useState(1);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
+
+  // Apply filters
+  useEffect(() => {
+    let result = [...products];
+
+    // Apply all filters
+    result = filterProducts.byCategory(result, category || undefined);
+    result = filterProducts.byGender(result, gender || undefined);
+    result = filterProducts.byColor(result, color || undefined);
+    result = filterProducts.bySize(result, size || undefined);
+    result = filterProducts.byPrice(result, priceRange[0], priceRange[1]);
+    result = filterProducts.bySearch(result, searchQuery);
+    result = filterProducts.byCustomizable(result, showCustomizable);
+    result = filterProducts.byAvailability(result, inStockOnly);
+
+    // Apply sorting
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'price_asc':
+          return a.price - b.price;
+        case 'price_desc':
+          return b.price - a.price;
+        case 'name_asc':
+          return a.name.localeCompare(b.name);
+        case 'name_desc':
+          return b.name.localeCompare(a.name);
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredProducts(result);
+    setPage(1); // Reset to first page when filters change
+  }, [category, gender, color, size, priceRange, searchQuery, showCustomizable, inStockOnly, sortBy]);
+
+  const clearFilters = () => {
+    setCategory('');
+    setGender('');
+    setColor('');
+    setSize('');
+    setPriceRange([0, 1000]);
+    setSearchQuery('');
+    setShowCustomizable(false);
+    setInStockOnly(false);
+    setSortBy('name_asc');
   };
 
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setSelectedProduct(null);
-    setSelectedSize('');
-    setSelectedColor('');
-    setQuantity(1);
-  };
-
-  const handleAddToCart = () => {
-    if (!selectedProduct || !selectedSize || !selectedColor) return;
-
+  const handleAddToCart = (product: Product) => {
     const cartItem = {
-      id: Date.now(), // Generate unique numeric ID
-      productId: selectedProduct.id,
-      name: selectedProduct.name,
-      price: selectedProduct.price,
-      image: selectedProduct.image,
-      size: selectedSize,
-      color: selectedColor,
-      quantity: quantity,
-      category: selectedProduct.category
+      id: Date.now(),
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      image: getProductImagePath(product.images[0]),
+      quantity: 1,
+      category: product.category
     };
-
     addItem(cartItem);
-    handleCloseModal();
   };
 
-  const handleContinueShopping = () => {
-    handleCloseModal();
+  const handleProductClick = (product: Product) => {
+    router.push(`/product/${product.id}?category=${product.category}&gender=${product.gender}`);
   };
 
-  const handleCheckout = () => {
-    router.push('/cart');
-  };
+  // Calculate pagination
+  const pageCount = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+  const displayProducts = filteredProducts.slice(
+    (page - 1) * PRODUCTS_PER_PAGE,
+    page * PRODUCTS_PER_PAGE
+  );
 
-  const getTotalCartItems = () => {
-    return items.reduce((total: number, item: any) => total + item.quantity, 0);
-  };
-
-  return (
-    <Container maxWidth="lg" sx={{ py: 8 }}>
-      {/* Header */}
-      <Box sx={{ mb: 6, textAlign: 'center' }}>
-        <Typography
-          variant="h1"
-          sx={{
-            fontSize: { xs: '2rem', md: '2.5rem' },
-            fontFamily: THEME.typography.headingFamily,
-            fontWeight: 500,
-            mb: 2,
-            color: 'text.primary'
-          }}
-        >
-          Ready-Made Collection
+  const FiltersPanel = () => (
+    <Stack spacing={3} sx={{ width: isMobile ? '100%' : '280px', p: 3, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          Filters
         </Typography>
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            mb: 4,
-            color: 'text.secondary',
-            fontFamily: THEME.typography.headingFamily
-          }}
+        <Button
+          variant="text"
+          size="small"
+          onClick={clearFilters}
+          startIcon={<Refresh />}
         >
-          Beautiful Ethiopian fashion, ready to ship
-        </Typography>
+          Clear All
+        </Button>
+      </Box>
 
-        {/* Cart Button */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 4 }}>
-          <Button
-            variant="outlined"
-            startIcon={
-              <Badge badgeContent={getTotalCartItems()} color="primary">
-                <ShoppingCart />
-              </Badge>
-            }
-            onClick={handleCheckout}
-            sx={{
-              borderColor: THEME.colors.primary,
-              color: THEME.colors.primary,
-              '&:hover': {
-                borderColor: THEME.colors.secondary,
-                color: THEME.colors.secondary
-              }
-            }}
-          >
-            View Cart
-          </Button>
+      {/* Search */}
+      <TextField
+        fullWidth
+        size="small"
+        placeholder="Search products..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search />
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      {/* Category Filter */}
+      <FormControl fullWidth size="small">
+        <InputLabel>Category</InputLabel>
+        <Select
+          value={category}
+          onChange={(e) => setCategory(e.target.value as ProductCategory)}
+          label="Category"
+        >
+          <MenuItem value="">All Categories</MenuItem>
+          {productCategories.map((cat) => (
+            <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Gender Filter */}
+      <FormControl fullWidth size="small">
+        <InputLabel>Gender</InputLabel>
+        <Select
+          value={gender}
+          onChange={(e) => setGender(e.target.value as ProductGender)}
+          label="Gender"
+        >
+          <MenuItem value="">All Genders</MenuItem>
+          {productGenders.map((gen) => (
+            <MenuItem key={gen} value={gen}>{gen}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Color Filter */}
+      <FormControl fullWidth size="small">
+        <InputLabel>Color</InputLabel>
+        <Select
+          value={color}
+          onChange={(e) => setColor(e.target.value as ProductColor)}
+          label="Color"
+        >
+          <MenuItem value="">All Colors</MenuItem>
+          {productColors.map((clr) => (
+            <MenuItem key={clr} value={clr}>{clr}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Size Filter */}
+      <FormControl fullWidth size="small">
+        <InputLabel>Size</InputLabel>
+        <Select
+          value={size}
+          onChange={(e) => setSize(e.target.value as ProductSize)}
+          label="Size"
+        >
+          <MenuItem value="">All Sizes</MenuItem>
+          {productSizes.map((sz) => (
+            <MenuItem key={sz} value={sz}>{sz}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Price Range */}
+      <Box>
+        <Typography variant="subtitle2" gutterBottom>Price Range</Typography>
+        <Slider
+          value={priceRange}
+          onChange={(_, newValue) => setPriceRange(newValue as [number, number])}
+          valueLabelDisplay="auto"
+          min={0}
+          max={1000}
+          step={50}
+          valueLabelFormat={(value) => `$${value}`}
+        />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+          <Typography variant="caption" color="text.secondary">
+            ${priceRange[0]}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            ${priceRange[1]}
+          </Typography>
         </Box>
       </Box>
 
-      {/* Products Grid */}
-      <Grid container spacing={4}>
-        {shopProducts.map((product) => (
-          <Grid item xs={12} sm={6} md={4} key={product.id}>
-            <Card
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                cursor: 'pointer',
-                '&:hover': {
-                  transform: 'translateY(-8px)',
-                  boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
-                }
-              }}
-              onClick={() => handleProductClick(product)}
-            >
-              <Box sx={{ position: 'relative' }}>
-                <CardMedia
-                  component="img"
-                  height="300"
-                  image={product.image}
-                  alt={product.name}
-                  sx={{ objectFit: 'cover' }}
-                />
-                
-                {/* Badges */}
-                <Box sx={{ position: 'absolute', top: 16, left: 16 }}>
-                  <Stack direction="row" spacing={1}>
-                    {product.bestseller && (
-                      <Chip
-                        label="Bestseller"
-                        size="small"
-                        sx={{
-                          bgcolor: THEME.colors.primary,
-                          color: 'white',
-                          fontWeight: 600
-                        }}
-                      />
-                    )}
-                    {product.originalPrice > product.price && (
-                      <Chip
-                        label="Sale"
-                        size="small"
-                        sx={{
-                          bgcolor: '#f44336',
-                          color: 'white',
-                          fontWeight: 600
-                        }}
-                      />
-                    )}
-                  </Stack>
-                </Box>
+      {/* Additional Filters */}
+      <Stack spacing={1}>
+        <Button
+          variant={showCustomizable ? "contained" : "outlined"}
+          onClick={() => setShowCustomizable(!showCustomizable)}
+          size="small"
+          sx={{ justifyContent: 'flex-start' }}
+        >
+          Customizable Only
+        </Button>
+        <Button
+          variant={inStockOnly ? "contained" : "outlined"}
+          onClick={() => setInStockOnly(!inStockOnly)}
+          size="small"
+          sx={{ justifyContent: 'flex-start' }}
+        >
+          In Stock Only
+        </Button>
+      </Stack>
+    </Stack>
+  );
 
-                {/* Quick Add Button */}
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    bottom: 16,
-                    right: 16,
-                    opacity: 0,
-                    transition: 'opacity 0.3s ease',
-                    '.MuiCard-root:hover &': {
-                      opacity: 1
-                    }
-                  }}
-                >
-                  <Button
-                    variant="contained"
-                    size="small"
-                    sx={{
-                      bgcolor: THEME.colors.primary,
-                      color: 'white',
-                      minWidth: 'auto',
-                      px: 2,
-                      '&:hover': {
-                        bgcolor: THEME.colors.secondary
-                      }
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleProductClick(product);
-                    }}
-                  >
-                    Add to Cart
-                  </Button>
-                </Box>
-              </Box>
-
-              <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  {product.name}
-                </Typography>
-                
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary" 
-                  sx={{ mb: 2, height: '40px', overflow: 'hidden' }}
-                >
-                  {product.description.slice(0, 80)}...
-                </Typography>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <Typography 
-                    variant="h6" 
-                    sx={{ 
-                      color: THEME.colors.primary,
-                      fontWeight: 600 
-                    }}
-                  >
-                    ${product.price}
-                  </Typography>
-                  {product.originalPrice > product.price && (
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        textDecoration: 'line-through',
-                        color: 'text.secondary'
-                      }}
-                    >
-                      ${product.originalPrice}
-                    </Typography>
-                  )}
-                </Box>
-
-                <Chip
-                  label={product.category}
-                  size="small"
-                  variant="outlined"
-                  sx={{ borderColor: THEME.colors.primary }}
-                />
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Product Modal */}
-      <Modal
-        open={modalOpen}
-        onClose={handleCloseModal}
-        closeAfterTransition
-        BackdropComponent={Backdrop}
-        BackdropProps={{
-          timeout: 500,
-        }}
-      >
-        <Fade in={modalOpen}>
-          <Box
+  return (
+    <Box sx={{ py: THEME.spacing.section, minHeight: '100vh', mt: 8 }}>
+      <Container maxWidth="xl">
+        {/* Header */}
+        <Box sx={{ mb: 4, textAlign: 'center' }}>
+          <Typography
+            variant="h1"
             sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: { xs: '95%', sm: '90%', md: '80%', lg: '70%' },
-              maxWidth: '900px',
-              maxHeight: '90vh',
-              bgcolor: 'background.paper',
-              borderRadius: 3,
-              boxShadow: 24,
-              overflow: 'auto'
+              fontSize: { xs: '2rem', md: '2.5rem' },
+              fontFamily: THEME.typography.headingFamily,
+              fontWeight: 500,
+              mb: 2
             }}
           >
-            {selectedProduct && (
-              <>
-                {/* Modal Header */}
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  p: 3,
-                  borderBottom: 1,
-                  borderColor: 'divider'
-                }}>
-                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                    {selectedProduct.name}
-                  </Typography>
-                  <IconButton onClick={handleCloseModal}>
-                    <Close />
-                  </IconButton>
-                </Box>
+            Shop Collection
+          </Typography>
+          <Typography
+            variant="h6"
+            sx={{
+              color: 'text.secondary',
+              fontWeight: 'normal',
+              maxWidth: '800px',
+              mx: 'auto'
+            }}
+          >
+            Discover our curated collection of Ethiopian fashion
+          </Typography>
+        </Box>
 
-                {/* Modal Content */}
-                <Grid container>
-                  {/* Product Image */}
-                  <Grid item xs={12} md={6}>
-                    <Box sx={{ p: 3 }}>
-                      <Box
-                        component="img"
-                        src={selectedProduct.image}
-                        alt={selectedProduct.name}
-                        sx={{
-                          width: '100%',
-                          height: { xs: '300px', md: '400px' },
-                          objectFit: 'cover',
-                          borderRadius: 2
-                        }}
+        <Grid container spacing={4}>
+          {/* Filters - Desktop */}
+          {!isMobile && (
+            <Grid item xs={12} md={3}>
+              <FiltersPanel />
+            </Grid>
+          )}
+
+          {/* Products */}
+          <Grid item xs={12} md={!isMobile ? 9 : 12}>
+            {/* Sort and Filter Controls */}
+            <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {isMobile && (
+                  <Button
+                    onClick={() => setFiltersOpen(true)}
+                    startIcon={<FilterList />}
+                    variant="outlined"
+                    size="small"
+                  >
+                    Filters
+                  </Button>
+                )}
+                <Typography variant="body2" color="text.secondary">
+                  {filteredProducts.length} products found
+                </Typography>
+              </Box>
+
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <Select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  displayEmpty
+                  variant="outlined"
+                  startAdornment={<Sort sx={{ mr: 1, color: 'text.secondary' }} />}
+                >
+                  <MenuItem value="name_asc">Name (A-Z)</MenuItem>
+                  <MenuItem value="name_desc">Name (Z-A)</MenuItem>
+                  <MenuItem value="price_asc">Price (Low-High)</MenuItem>
+                  <MenuItem value="price_desc">Price (High-Low)</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Products Grid */}
+            <Grid container spacing={3}>
+              {displayProducts.map((product) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+                  <Card
+                    elevation={2}
+                    sx={{
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'transform 0.2s ease-in-out',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        transform: 'scale(1.02)'
+                      }
+                    }}
+                    onClick={() => handleProductClick(product)}
+                  >
+                    {/* Product Image */}
+                    <Box sx={{ position: 'relative', pt: '120%' }}>
+                      <Image
+                        src={getProductImagePath(product.images[0])}
+                        alt={product.name}
+                        fill
+                        style={{ objectFit: 'cover' }}
+                        onError={handleImageError}
                       />
-                    </Box>
-                  </Grid>
-
-                  {/* Product Details */}
-                  <Grid item xs={12} md={6}>
-                    <Box sx={{ p: 3 }}>
-                      {/* Price */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                        <Typography 
-                          variant="h4" 
-                          sx={{ 
-                            color: THEME.colors.primary,
-                            fontWeight: 600 
-                          }}
-                        >
-                          ${selectedProduct.price}
-                        </Typography>
-                        {selectedProduct.originalPrice > selectedProduct.price && (
-                          <Typography 
-                            variant="h6" 
+                      {/* Badges */}
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        sx={{ position: 'absolute', top: 8, left: 8 }}
+                      >
+                        {product.isNew && (
+                          <Chip
+                            label="New"
+                            size="small"
                             sx={{ 
-                              textDecoration: 'line-through',
-                              color: 'text.secondary'
+                              bgcolor: THEME.colors.primary,
+                              color: 'white',
+                              height: '20px',
+                              '& .MuiChip-label': { px: 1, fontSize: '0.7rem' }
                             }}
-                          >
-                            ${selectedProduct.originalPrice}
-                          </Typography>
+                          />
                         )}
-                      </Box>
-
-                      {/* Description */}
-                      <Typography variant="body1" sx={{ mb: 3 }}>
-                        {selectedProduct.description}
-                      </Typography>
-
-                      {/* Features */}
-                      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                        Features:
-                      </Typography>
-                      <Box component="ul" sx={{ pl: 2, mb: 3 }}>
-                        {selectedProduct.features.map((feature: string, index: number) => (
-                          <Typography component="li" variant="body2" key={index} sx={{ mb: 0.5 }}>
-                            {feature}
-                          </Typography>
-                        ))}
-                      </Box>
-
-                      {/* Size Selection */}
-                      <FormControl fullWidth sx={{ mb: 2 }}>
-                        <InputLabel>Size</InputLabel>
-                        <Select
-                          value={selectedSize}
-                          label="Size"
-                          onChange={(e) => setSelectedSize(e.target.value)}
-                        >
-                          {selectedProduct.sizes.map((size: string) => (
-                            <MenuItem key={size} value={size}>
-                              {size}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-
-                      {/* Color Selection */}
-                      <FormControl fullWidth sx={{ mb: 3 }}>
-                        <InputLabel>Color</InputLabel>
-                        <Select
-                          value={selectedColor}
-                          label="Color"
-                          onChange={(e) => setSelectedColor(e.target.value)}
-                        >
-                          {selectedProduct.colors.map((color: string) => (
-                            <MenuItem key={color} value={color}>
-                              {color}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-
-                      {/* Quantity */}
-                      <Box sx={{ mb: 3 }}>
-                        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                          Quantity:
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <IconButton
-                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        {product.isBestseller && (
+                          <Chip
+                            label="Bestseller"
                             size="small"
-                            sx={{ border: 1, borderColor: 'divider' }}
-                          >
-                            <Remove />
-                          </IconButton>
-                          <Typography variant="h6" sx={{ minWidth: '40px', textAlign: 'center' }}>
-                            {quantity}
-                          </Typography>
-                          <IconButton
-                            onClick={() => setQuantity(quantity + 1)}
-                            size="small"
-                            sx={{ border: 1, borderColor: 'divider' }}
-                          >
-                            <Add />
-                          </IconButton>
-                        </Box>
-                      </Box>
-
-                      <Divider sx={{ mb: 3 }} />
-
-                      {/* Total Price */}
-                      <Box sx={{ mb: 3 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                          Total: ${(selectedProduct.price * quantity).toFixed(2)}
-                        </Typography>
-                      </Box>
-
-                      {/* Action Buttons */}
-                      <Stack spacing={2}>
-                        <Button
-                          variant="contained"
-                          size="large"
-                          onClick={handleAddToCart}
-                          disabled={!selectedSize || !selectedColor}
-                          sx={{
-                            bgcolor: THEME.colors.primary,
-                            color: 'white',
-                            py: 2,
-                            fontSize: '1.1rem',
-                            '&:hover': {
-                              bgcolor: THEME.colors.secondary
-                            }
-                          }}
-                        >
-                          Add to Cart
-                        </Button>
-                        
-                        <Button
-                          variant="outlined"
-                          size="large"
-                          onClick={handleContinueShopping}
-                          sx={{
-                            borderColor: THEME.colors.primary,
-                            color: THEME.colors.primary,
-                            '&:hover': {
-                              borderColor: THEME.colors.secondary,
-                              color: THEME.colors.secondary
-                            }
-                          }}
-                        >
-                          Continue Shopping
-                        </Button>
+                            sx={{ 
+                              bgcolor: THEME.colors.accent,
+                              color: 'white',
+                              height: '20px',
+                              '& .MuiChip-label': { px: 1, fontSize: '0.7rem' }
+                            }}
+                          />
+                        )}
                       </Stack>
                     </Box>
-                  </Grid>
+
+                    <CardContent sx={{ flexGrow: 1, p: 2 }}>
+                      <Typography variant="h6" gutterBottom noWrap>
+                        {product.name}
+                      </Typography>
+                      <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                        <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
+                          ${product.price}
+                        </Typography>
+                        {product.originalPrice && (
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ textDecoration: 'line-through', alignSelf: 'center' }}
+                          >
+                            ${product.originalPrice}
+                          </Typography>
+                        )}
+                      </Stack>
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ gap: 0.5, mb: 2 }}>
+                        <Chip
+                          label={product.category}
+                          size="small"
+                          variant="outlined"
+                          sx={{ 
+                            height: '20px',
+                            '& .MuiChip-label': { px: 1, fontSize: '0.7rem' }
+                          }}
+                        />
+                        <Chip
+                          label={product.gender}
+                          size="small"
+                          variant="outlined"
+                          sx={{ 
+                            height: '20px',
+                            '& .MuiChip-label': { px: 1, fontSize: '0.7rem' }
+                          }}
+                        />
+                      </Stack>
+                    </CardContent>
+
+                    <CardContent sx={{ pt: 0, pb: 2 }}>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent card click when clicking button
+                          handleProductClick(product);
+                        }}
+                        startIcon={<ShoppingCart />}
+                        sx={{
+                          bgcolor: THEME.colors.primary,
+                          '&:hover': {
+                            bgcolor: THEME.colors.secondary
+                          }
+                        }}
+                      >
+                        View Details
+                      </Button>
+                    </CardContent>
+                  </Card>
                 </Grid>
-              </>
+              ))}
+            </Grid>
+
+            {/* Pagination */}
+            {pageCount > 1 && (
+              <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+                <Pagination
+                  count={pageCount}
+                  page={page}
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
             )}
-          </Box>
-        </Fade>
-      </Modal>
-    </Container>
+          </Grid>
+        </Grid>
+      </Container>
+
+      {/* Mobile Filters Drawer */}
+      <Drawer
+        anchor="left"
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: '100%',
+            maxWidth: '320px'
+          }
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="h6">Filters</Typography>
+          <IconButton onClick={() => setFiltersOpen(false)}>
+            <Close />
+          </IconButton>
+        </Box>
+        <FiltersPanel />
+      </Drawer>
+    </Box>
   );
 } 

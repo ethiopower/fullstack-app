@@ -1,36 +1,55 @@
 'use client';
 
-import { Box } from '@mui/material';
-import { colors } from '@/lib/theme';
+import { Box, Typography } from '@mui/material';
+import BrokenImageIcon from '@mui/icons-material/BrokenImage';
+import { THEME } from '@/lib/constants';
 
-interface PlaceholderImageProps {
-  width?: string | number;
-  height?: string | number;
+type PlaceholderImageProps = {
   text?: string;
-}
+  aspectRatio?: string | number;
+  height?: string | number;
+  showIcon?: boolean;
+};
 
 export default function PlaceholderImage({ 
-  width = '100%', 
+  text = 'Image not available',
+  aspectRatio = '1/1',
   height = '100%',
-  text = 'Placeholder Image'
+  showIcon = true
 }: PlaceholderImageProps) {
   return (
     <Box
       sx={{
-        width,
+        width: '100%',
         height,
-        backgroundColor: 'rgba(15, 157, 88, 0.1)',
+        aspectRatio,
+        bgcolor: 'grey.100',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        color: colors.green,
-        border: `1px dashed ${colors.green}`,
-        borderRadius: 1,
+        color: 'text.secondary',
         padding: 2,
         textAlign: 'center',
+        borderRadius: 1,
+        background: `linear-gradient(45deg, ${THEME.colors.primary}10, ${THEME.colors.secondary}10)`,
+        border: `1px solid ${THEME.colors.primary}20`
       }}
     >
-      {text}
+      {showIcon && <BrokenImageIcon sx={{ fontSize: 40, mb: 1, color: THEME.colors.primary }} />}
+      <Typography 
+        variant="caption"
+        sx={{
+          color: 'text.secondary',
+          fontWeight: 500,
+          maxWidth: '80%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}
+      >
+        {text}
+      </Typography>
     </Box>
   );
 } 
