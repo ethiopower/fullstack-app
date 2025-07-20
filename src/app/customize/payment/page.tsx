@@ -179,6 +179,11 @@ export default function PaymentPage() {
       const result = await cardInstance.tokenize();
       
       if (result.status === 'OK') {
+        // Ensure we have valid order data
+        if (!pendingOrder.orderSummary?.items || !Array.isArray(pendingOrder.orderSummary.items)) {
+          throw new Error('Invalid order data: missing items');
+        }
+
         const response = await fetch('/api/square-payment', {
           method: 'POST',
           headers: {
@@ -189,7 +194,22 @@ export default function PaymentPage() {
             amount: Math.round(pendingOrder.orderSummary.total * 100),
             orderId: pendingOrder.orderId,
             customerEmail: pendingOrder.customerInfo.email,
-            orderData: pendingOrder
+            orderData: {
+              customerName: `${pendingOrder.customerInfo.firstName} ${pendingOrder.customerInfo.lastName}`,
+              customerInfo: pendingOrder.customerInfo,
+              items: pendingOrder.orderSummary.items.map((item: any) => ({
+                name: item.name || `Custom ${item.gender}'s Garment`,
+                quantity: item.quantity || 1,
+                price: item.price,
+                size: item.measurements?.standardSize || 'Custom',
+                color: item.color || 'As Selected',
+                isCustom: !item.measurements?.standardSize,
+                measurements: item.measurements || {},
+                personId: item.personId || 'default',
+                personName: item.personName || `${pendingOrder.customerInfo.firstName} ${pendingOrder.customerInfo.lastName}`
+              })),
+              people: pendingOrder.orderSummary.people || []
+            }
           }),
         });
 
@@ -201,7 +221,6 @@ export default function PaymentPage() {
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('pendingOrder');
             sessionStorage.removeItem('orderSummary');
-            sessionStorage.removeItem('customerInfo');
             sessionStorage.removeItem('orderData');
             sessionStorage.removeItem('orderPeople');
             sessionStorage.removeItem('cartOrderSummary');
@@ -220,9 +239,9 @@ export default function PaymentPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 orderId: pendingOrder.orderId,
-                customerEmail: pendingOrder.customerInfo?.email || 'customer@example.com',
-                customerName: `${pendingOrder.customerInfo?.firstName || 'Customer'} ${pendingOrder.customerInfo?.lastName || ''}`,
-                orderTotal: paymentResult.amount || Math.round(pendingOrder.orderSummary?.total * 100) || 0,
+                customerEmail: pendingOrder.customerInfo.email,
+                customerName: `${pendingOrder.customerInfo.firstName} ${pendingOrder.customerInfo.lastName}`.trim(),
+                orderTotal: paymentResult.amount || Math.round(pendingOrder.orderSummary.total * 100),
                 trackingUrl: `${window.location.origin}/order-tracking/${pendingOrder.orderId}`
               })
             });

@@ -12,11 +12,12 @@ if (!SQUARE_ACCESS_TOKEN || !SQUARE_LOCATION_ID) {
 
 interface OrderItem {
   name: string;
-  quantity: number;
-  basePriceMoney: {
+  quantity: string; // Square API expects quantity as string
+  base_price_money: { // Square API expects snake_case
     amount: number;
     currency: string;
   };
+  note?: string;
   metadata?: {
     size?: string;
     color?: string;
@@ -27,9 +28,9 @@ interface OrderItem {
 }
 
 interface CreateOrderRequest {
-  location_id: string; // Required by Square API
+  location_id: string;
   order: {
-    location_id: string; // Required by Square API
+    location_id: string;
     reference_id: string;
     line_items: OrderItem[];
     metadata?: { [key: string]: string };
@@ -46,17 +47,43 @@ export interface OrderData {
 
 export async function createOrder(orderData: OrderData) {
   try {
+    // Ensure we have valid items array
+    if (!Array.isArray(orderData.items) || orderData.items.length === 0) {
+      throw new Error('Order must contain at least one item');
+    }
+
+    // Ensure we have a valid customer name in metadata
+    if (!orderData.metadata?.customer_name) {
+      throw new Error('Customer name is required in order metadata');
+    }
+
     const requestData: CreateOrderRequest = {
-      location_id: SQUARE_LOCATION_ID!, // Square API requires location_id in the order object too
+      location_id: SQUARE_LOCATION_ID!,
       order: {
         location_id: SQUARE_LOCATION_ID!,
         reference_id: orderData.orderId,
-        line_items: orderData.items,
+        line_items: orderData.items.map(item => ({
+          name: item.name,
+          quantity: String(item.quantity || 1),
+          base_price_money: { // Square API expects snake_case
+            amount: Math.round(item.base_price_money.amount),
+            currency: item.base_price_money.currency || 'USD'
+          },
+          note: `Size: ${item.metadata?.size || 'N/A'}, Color: ${item.metadata?.color || 'N/A'}`,
+          metadata: {
+            size: item.metadata?.size || '',
+            color: item.metadata?.color || '',
+            personId: item.metadata?.personId || 'default',
+            measurements: item.metadata?.measurements || '{}',
+            isCustom: item.metadata?.isCustom || 'false'
+          }
+        })),
         metadata: {
           customer_email: orderData.customerEmail,
-          order_type: 'custom_fashion',
-          created_at: new Date().toISOString(),
-          ...orderData.metadata
+          customer_name: orderData.metadata.customer_name,
+          order_type: orderData.metadata.order_type || 'regular',
+          created_at: orderData.metadata.created_at || new Date().toISOString(),
+          people: orderData.metadata.people || '[]'
         }
       },
       idempotency_key: `order-${orderData.orderId}-${Date.now()}`
@@ -141,72 +168,54 @@ export const squareOrders = {
       const customerData = metadataOrder || squareOrder;
       
              // Transform Square order to our format
-       const transformedOrder = {
-         id: squareOrder.reference_id || completedOrder?.reference_id || squareOrder.id,
-         squareOrderId: squareOrder.id,
-         customerEmail: customerData.metadata?.customer_email || '',
-         customer: {
-           firstName: customerData.metadata?.customer_email?.split('@')[0]?.split('.')[0]?.charAt(0).toUpperCase() + customerData.metadata?.customer_email?.split('@')[0]?.split('.')[0]?.slice(1) || 'Customer',
-           lastName: customerData.metadata?.customer_email?.split('@')[0]?.split('.')[1]?.charAt(0).toUpperCase() + customerData.metadata?.customer_email?.split('@')[0]?.split('.')[1]?.slice(1) || '',
-           email: customerData.metadata?.customer_email || '',
-           phone: '(240) 704-9915', // Always use business phone
-           address: '13814 Outlet Dr, Inside the Global Foods', // Always use business address  
-           city: 'Silver Spring',
-           state: 'MD',
-           zipCode: '20904'
-         },
-         status: this.mapSquareStatus(squareOrder.state),
-         total: (squareOrder.total_money?.amount || 0) / 100, // Convert cents to dollars
-         subtotal: Math.round(((squareOrder.total_money?.amount || 0) * 0.9)) / 100, // Convert cents to dollars
-         tax: Math.round(((squareOrder.total_money?.amount || 0) * 0.1)) / 100, // Convert cents to dollars
-         currency: squareOrder.total_money?.currency || 'USD',
-         items: squareOrder.line_items?.map((item: any) => ({
-           id: item.uid,
-           name: 'Custom Fashion Garment', // Better item name
-           price: (item.base_price_money?.amount || 0) / 100, // Convert cents to dollars
-           quantity: parseInt(item.quantity) || 1,
-           size: item.metadata?.size || 'Custom',
-           color: item.metadata?.color || 'As Selected',
-           customizations: item.metadata?.customizations ? JSON.parse(item.metadata.customizations) : {
-             design: 'Custom Design',
-             fabric: 'Premium Cotton',
-             style: 'Traditional'
-           },
-           personId: item.metadata?.person_id || 'default'
-         })) || [
-           {
-             id: 'default-item',
-             name: 'Custom Fashion Garment',
-             price: (squareOrder.total_money?.amount || 0) / 100, // Convert cents to dollars
-             quantity: 1,
-             size: 'Custom',
-             color: 'As Selected',
-             customizations: {
-               design: 'Custom Design',
-               fabric: 'Premium Cotton',
-               style: 'Traditional'
-             },
-             personId: 'default'
-           }
-         ],
-         people: customerData.metadata?.people ? JSON.parse(customerData.metadata.people) : [
-           {
-             id: 'default',
-             name: 'Customer',
-             category: 'adult',
-             gender: 'unisex',
-             measurements: {}
-           }
-         ],
-         // Payment information from tenders
-         paymentInfo: squareOrder.tenders ? {
-           cardBrand: squareOrder.tenders[0]?.card_details?.card?.card_brand,
-           last4: squareOrder.tenders[0]?.card_details?.card?.last_4,
-           paymentId: squareOrder.tenders[0]?.payment_id
-         } : null,
-         createdAt: squareOrder.created_at || new Date().toISOString(),
-         updatedAt: squareOrder.updated_at || new Date().toISOString()
-       };
+      const transformedOrder = {
+        id: squareOrder.reference_id || completedOrder?.reference_id || squareOrder.id,
+        squareOrderId: squareOrder.id,
+        customerEmail: customerData.metadata?.customer_email || '',
+        customer: {
+          name: customerData.metadata?.customer_name || customerData.metadata?.customer_email?.split('@')[0] || 'Customer',
+          email: customerData.metadata?.customer_email || '',
+          phone: '(240) 704-9915',
+          address: '13814 Outlet Dr, Inside the Global Foods',
+          city: 'Silver Spring',
+          state: 'MD',
+          zipCode: '20904'
+        },
+        status: this.mapSquareStatus(squareOrder.state),
+        total: (squareOrder.total_money?.amount || 0) / 100, // Convert cents to dollars
+        subtotal: Math.round(((squareOrder.total_money?.amount || 0) * 0.9)) / 100, // Convert cents to dollars
+        tax: Math.round(((squareOrder.total_money?.amount || 0) * 0.1)) / 100, // Convert cents to dollars
+        currency: squareOrder.total_money?.currency || 'USD',
+        items: squareOrder.line_items?.map((item: any) => ({
+          id: item.uid,
+          name: item.name,
+          price: (item.base_price_money?.amount || 0) / 100,
+          quantity: parseInt(item.quantity) || 1,
+          size: item.metadata?.size || 'N/A',
+          color: item.metadata?.color || 'N/A',
+          isCustom: item.metadata?.isCustom === 'true',
+          measurements: item.metadata?.measurements ? JSON.parse(item.metadata.measurements) : undefined,
+          personName: item.metadata?.personName || customerData.metadata?.customer_name || 'Customer',
+          personId: item.metadata?.personId || 'default'
+        })) || [],
+        people: customerData.metadata?.people ? JSON.parse(customerData.metadata.people) : [
+          {
+            id: 'default',
+            name: 'Customer',
+            category: 'adult',
+            gender: 'unisex',
+            measurements: {}
+          }
+        ],
+        // Payment information from tenders
+        paymentInfo: squareOrder.tenders ? {
+          cardBrand: squareOrder.tenders[0]?.card_details?.card?.card_brand,
+          last4: squareOrder.tenders[0]?.card_details?.card?.last_4,
+          paymentId: squareOrder.tenders[0]?.payment_id
+        } : null,
+        createdAt: squareOrder.created_at || new Date().toISOString(),
+        updatedAt: squareOrder.updated_at || new Date().toISOString()
+      };
 
       return transformedOrder;
 

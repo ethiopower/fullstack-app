@@ -3,6 +3,7 @@ import { BUSINESS_INFO } from './constants';
 interface OrderConfirmationData {
   orderId: string;
   customerName: string;
+  customerEmail: string;
   items: Array<{
     name: string;
     price: number;
@@ -14,13 +15,15 @@ interface OrderConfirmationData {
     personName?: string;
   }>;
   subtotal: number;
-  deposit: number;
+  tax: number;
+  total: number;
   trackingUrl: string;
 }
 
 interface OrderStatusUpdateData {
   orderId: string;
   customerName: string;
+  customerEmail: string;
   status: string;
   message: string;
 }
@@ -34,6 +37,7 @@ interface ContactFormData {
 
 interface NewsletterData {
   customerName: string;
+  customerEmail: string;
   content: string;
 }
 
@@ -103,8 +107,7 @@ const baseTemplate = (content: string) => `
     <div class="footer">
       <p>
         ${BUSINESS_INFO.brandName}<br>
-        123 Fashion Street<br>
-        Silver Spring, MD 20910<br>
+        ${BUSINESS_INFO.address.full}<br>
         ${BUSINESS_INFO.phone}
       </p>
       <div class="social-links">
@@ -165,8 +168,8 @@ export function getOrderConfirmationTemplate(data: OrderConfirmationData): strin
         ${itemsList}
       </ul>
       <p><strong>Subtotal:</strong> $${data.subtotal.toFixed(2)}</p>
-      <p><strong>Deposit Paid:</strong> $${data.deposit.toFixed(2)}</p>
-      <p><strong>Balance Due:</strong> $${(data.subtotal - data.deposit).toFixed(2)}</p>
+      <p><strong>Tax:</strong> $${data.tax.toFixed(2)}</p>
+      <p><strong>Total:</strong> $${data.total.toFixed(2)}</p>
     </div>
 
     <div style="text-align: center; margin: 30px 0;">
@@ -174,21 +177,19 @@ export function getOrderConfirmationTemplate(data: OrderConfirmationData): strin
          style="display: inline-block; padding: 12px 24px; background-color: #078930; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
         🔍 Track Your Order
       </a>
-      <p style="margin-top: 10px; font-size: 14px; color: #666;">
-        Or copy this link: <a href="${data.trackingUrl}" style="color: #078930;">${data.trackingUrl}</a>
-      </p>
     </div>
 
     <p>What happens next?</p>
     <ol>
       <li>We'll start working on your custom garment</li>
       <li>You'll receive updates as we progress</li>
-      <li>We'll notify you when your order is ready for pickup</li>
+      <li>We'll notify you when your order is ready for pickup (typically 3-4 weeks)</li>
     </ol>
 
     <p>
       If you have any questions, please don't hesitate to contact us at
       <a href="mailto:${BUSINESS_INFO.contactEmail}">${BUSINESS_INFO.contactEmail}</a>
+      or call us at ${BUSINESS_INFO.phone}.
     </p>
   `;
 
